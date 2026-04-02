@@ -1,0 +1,107 @@
+{
+    "app": {
+        "title": "Cheap Fuel Global",
+        "tagline": "Privacy-first fuel prices"
+    },
+    "tabs": {
+        "map": "Map",
+        "list": "Stations",
+        "savings": "Savings",
+        "settings": "Settings"
+    },
+    "map": {
+        "findCheapest": "Find cheapest",
+        "locating": "Getting location…",
+        "permissionDenied": "Location permission is needed to show nearby stations.",
+        "noCheapest": "No station matches your filters.",
+        "openFilters": "Filters",
+        "searchArea": "Search this area",
+        "searchPlaceholder": "Search city or address…",
+        "stationsFound": "{{count}} stations found",
+        "noStations": "No stations found",
+        "noStationsHint": "Try increasing your search radius or move the map to a different area."
+    },
+    "station": {
+        "details": "Station details",
+        "navigate": "Navigate",
+        "waze": "Open in Waze",
+        "tomtom": "TomTom Go",
+        "distance": "{{km}} km away",
+        "reportPrice": "Report a price",
+        "hours": "Hours",
+        "fuels": "Fuels",
+        "noPrice": "No price data available for this station.",
+        "call": "Call"
+    },
+    "savings": {
+        "title": "Fuel Savings",
+        "heroSub": "Is the drive to a cheaper station really worth it?",
+        "tankSize": "Tank size (litres)",
+        "unitLiter": "Liters",
+        "unitGallon": "US gal",
+        "yourPrice": "Your usual price",
+        "cheapestHint": "Uses cheapest visible station for selected fuel.",
+        "kmPerLiter": "Fuel economy (km per litre)",
+        "cta": "Calculate My Savings",
+        "nominal": "Fill-up saving",
+        "tripCost": "Detour fuel cost",
+        "net": "Estimated net savings",
+        "extraFuel": "Extra fuel for trip",
+        "cheapestNearby": "CHEAPEST NEARBY",
+        "worthIt": "Worth the trip! 🎉",
+        "notWorthIt": "Trip not worth it",
+        "saveAmount": "You save {{amount}} after fuel costs",
+        "costAmount": "Driving there costs {{amount}} more than you save",
+        "netSavingPerFill": "net saving per fill-up",
+        "monthlySaving": "Est. monthly saving",
+        "tipMonthly": "Monthly estimate assumes 4 fill-ups per month.",
+        "priceComparison": "Price Comparison",
+        "stationsCount": "{{count}} stations",
+        "trueSavingsCalc": "True Savings Calculator",
+        "emptyHint": "Open the Map tab to find nearby stations first"
+    },
+    "settings": {
+        "title": "Filters & settings",
+        "fuelType": "Fuel type",
+        "fuelAll": "All",
+        "openNow": "Open now",
+        "priceMin": "Min price",
+        "priceMax": "Max price",
+        "country": "Country (ISO, e.g. DE)",
+        "clearCountry": "Clear country filter",
+        "language": "Language",
+        "theme": "Theme",
+        "themeSystem": "System",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "currencyManual": "Show prices in (optional override)",
+        "searchRadius": "Search radius",
+        "priceAlerts": "Price Alerts",
+        "alertsEnable": "Enable Background Alerts",
+        "alertsHint": "Get notified when cheap fuel is found nearby.",
+        "privacy": "No accounts, no personal analytics. Ads may be shown via Google AdMob. Location is used only on your device to query nearby prices.",
+        "dataSafety": "Google Play Data Safety (summary): Data not collected; data not shared; location processed on-device for maps. AdMob may use device identifiers per Google policy."
+    },
+    "sort": {
+        "closest": "Closest",
+        "cheapest": "Cheapest"
+    },
+    "fuel": {
+        "euro95": "Euro 95",
+        "euro98": "Euro 98 / Super",
+        "diesel": "Diesel",
+        "lpg": "LPG",
+        "regular": "Regular",
+        "midgrade": "Midgrade",
+        "premium": "Premium",
+        "e85": "E85",
+        "cng": "CNG"
+    },
+    "common": {
+        "retry": "Retry",
+        "loading": "Loading…",
+        "error": "Something went wrong",
+        "ok": "OK",
+        "cancel": "Cancel"
+    }
+}

@@ -1,0 +1,95 @@
+{
+    "app": {
+        "title": "Cheap Fuel Global",
+        "tagline": "Datenschutzfreundliche Kraftstoffpreise"
+    },
+    "tabs": {
+        "map": "Karte",
+        "list": "Tankstellen",
+        "savings": "Ersparnis",
+        "settings": "Einstellungen"
+    },
+    "map": {
+        "findCheapest": "Günstigste finden",
+        "locating": "Standort wird ermittelt…",
+        "permissionDenied": "Standortberechtigung wird benötigt, um Tankstellen in der Nähe anzuzeigen.",
+        "noCheapest": "Keine Tankstelle entspricht Ihren Filtern.",
+        "openFilters": "Filter",
+        "searchArea": "In diesem Bereich suchen",
+        "searchPlaceholder": "Stadt oder Adresse suchen…",
+        "stationsFound": "{{count}} Tankstellen gefunden",
+        "noStations": "Keine Tankstellen gefunden",
+        "noStationsHint": "Versuchen Sie den Suchradius zu erhöhen oder verschieben Sie die Karte."
+    },
+    "station": {
+        "details": "Tankstellendetails",
+        "navigate": "Navigieren",
+        "waze": "In Waze öffnen",
+        "tomtom": "TomTom Go",
+        "distance": "{{km}} km entfernt",
+        "reportPrice": "Preis melden",
+        "hours": "Öffnungszeiten",
+        "fuels": "Kraftstoffe",
+        "noPrice": "Keine Preisdaten für diese Tankstelle verfügbar.",
+        "call": "Anrufen"
+    },
+    "savings": {
+        "title": "Sparrechner",
+        "tankSize": "Tankgröße",
+        "unitLiter": "Liter",
+        "unitGallon": "US-Gallonen",
+        "yourPrice": "Ihr üblicher Preis (pro Einheit)",
+        "cheapestHint": "Verwendet die günstigste sichtbare Tankstelle für den gewählten Kraftstoff.",
+        "kmPerLiter": "Kraftstoffverbrauch (km/L)",
+        "cta": "Berechnen",
+        "nominal": "Tankersparnis",
+        "tripCost": "Zusätzliche Fahrtkosten",
+        "net": "Geschätzte Nettoersparnis",
+        "extraFuel": "Zusätzlicher Kraftstoff für die Fahrt",
+        "cheapestNearby": "Günstigste in der Nähe"
+    },
+    "settings": {
+        "title": "Filter und Einstellungen",
+        "fuelType": "Kraftstoffart",
+        "fuelAll": "Alle",
+        "openNow": "Jetzt geöffnet",
+        "priceMin": "Mindestpreis",
+        "priceMax": "Höchstpreis",
+        "country": "Land (ISO, z.B. DE)",
+        "clearCountry": "Länderfilter löschen",
+        "language": "Sprache",
+        "theme": "Design",
+        "themeSystem": "System",
+        "themeLight": "Hell",
+        "themeDark": "Dunkel",
+        "currencyManual": "Preise anzeigen in (optionale Überschreibung)",
+        "searchRadius": "Suchradius",
+        "priceAlerts": "Preisalarme",
+        "alertsEnable": "Hintergrundalarme aktivieren",
+        "alertsHint": "Lassen Sie sich benachrichtigen, wenn günstiger Kraftstoff gefunden wird.",
+        "privacy": "Keine Konten, keine persönlichen Analysen. Anzeigen können über Google AdMob geschaltet werden. Der Standort wird nur auf Ihrem Gerät verwendet.",
+        "dataSafety": "Der Standort wird nicht an unsere Server gesendet."
+    },
+    "sort": {
+        "closest": "Nächste",
+        "cheapest": "Günstigste"
+    },
+    "fuel": {
+        "euro95": "Euro 95",
+        "euro98": "Euro 98 / Super",
+        "diesel": "Diesel",
+        "lpg": "LPG",
+        "regular": "Regular",
+        "midgrade": "Midgrade",
+        "premium": "Premium",
+        "e85": "E85",
+        "cng": "CNG"
+    },
+    "common": {
+        "retry": "Wiederholen",
+        "loading": "Laden…",
+        "error": "Etwas ist schiefgelaufen",
+        "ok": "OK",
+        "cancel": "Abbrechen"
+    }
+}

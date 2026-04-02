@@ -1,0 +1,132 @@
+import axios from 'axios';
+import { TOMTOM_API_KEY, assertApiKey } from './apiKey';
+
+const BASE_SEARCH = 'https://api.tomtom.com/search/2';
+
+/* ─────────────────────────────────────────────────────
+   1. Reverse Geocoding — coordinates → address / city
+   ───────────────────────────────────────────────────── */
+
+export interface ReverseGeocodeResult {
+  formattedAddress: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  street?: string;
+}
+
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+): Promise<ReverseGeocodeResult | null> {
+  if (!assertApiKey()) return null;
+
+  try {
+    const url = `${BASE_SEARCH}/reverseGeocode/${lat},${lon}.json`;
+    const { data } = await axios.get(url, {
+      params: { key: TOMTOM_API_KEY },
+    });
+
+    const addr = data?.addresses?.[0]?.address;
+    if (!addr) return null;
+
+    return {
+      formattedAddress: addr.freeformAddress ?? '',
+      city: addr.municipality ?? addr.localName ?? '',
+      country: addr.country ?? '',
+      countryCode: addr.countryCode ?? '',
+      street: addr.streetName,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ─────────────────────────────────────────────────────
+   2. Full-text Search — address / POI text search → coordinates
+   ───────────────────────────────────────────────────── */
+
+export interface SearchSuggestion {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  type: string; // 'POI' | 'Geography' | 'Address'
+}
+
+export async function searchLocation(
+  query: string,
+  lat?: number,
+  lon?: number,
+  limit: number = 8,
+): Promise<SearchSuggestion[]> {
+  if (!assertApiKey() || !query.trim()) return [];
+
+  try {
+    const url = `${BASE_SEARCH}/search/${encodeURIComponent(query)}.json`;
+    const params: Record<string, any> = {
+      key: TOMTOM_API_KEY,
+      limit,
+      typeahead: true,
+      language: 'en-US',
+    };
+    if (lat != null && lon != null) {
+      params.lat = lat;
+      params.lon = lon;
+    }
+
+    const { data } = await axios.get(url, { params });
+    const results = data?.results ?? [];
+
+    return results.map((r: any): SearchSuggestion => ({
+      id: r.id ?? String(Math.random()),
+      name: r.poi?.name ?? r.address?.freeformAddress ?? 'Unknown',
+      address: r.address?.freeformAddress ?? '',
+      latitude: r.position?.lat ?? 0,
+      longitude: r.position?.lon ?? 0,
+      type: r.type ?? 'Unknown',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/* ─────────────────────────────────────────────────────
+   3. Geocoding — address text → coordinates
+   ───────────────────────────────────────────────────── */
+
+export interface GeocodeResult {
+  latitude: number;
+  longitude: number;
+  formattedAddress: string;
+  countryCode: string;
+}
+
+export async function geocodeAddress(
+  query: string,
+): Promise<GeocodeResult | null> {
+  if (!assertApiKey() || !query.trim()) return null;
+
+  try {
+    const url = `${BASE_SEARCH}/geocode/${encodeURIComponent(query)}.json`;
+    const { data } = await axios.get(url, {
+      params: {
+        key: TOMTOM_API_KEY,
+        limit: 1,
+      },
+    });
+
+    const r = data?.results?.[0];
+    if (!r) return null;
+
+    return {
+      latitude: r.position?.lat ?? 0,
+      longitude: r.position?.lon ?? 0,
+      formattedAddress: r.address?.freeformAddress ?? '',
+      countryCode: r.address?.countryCode ?? '',
+    };
+  } catch {
+    return null;
+  }
+}

@@ -1,0 +1,79 @@
+import 'dotenv/config';
+import type { ExpoConfig, ConfigContext } from 'expo/config';
+
+const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
+    ...config,
+    name: config.name || 'Cheap Fuel Price Global',
+    slug: config.slug || 'cheap-fuel-global',
+    owner: 'patrickdjeck',
+    version: config.version || '1.0.0',
+    orientation: config.orientation || 'portrait',
+    icon: config.icon || './assets/icon.png',
+    userInterfaceStyle: config.userInterfaceStyle || 'automatic',
+    scheme: 'fuelpricenew',
+    splash: {
+        image: './assets/splash-icon.png',
+        resizeMode: 'contain',
+        backgroundColor: '#0d47a1',
+    },
+    ios: {
+        supportsTablet: true,
+        bundleIdentifier: 'cheap.fuel.price.global',
+        infoPlist: {
+            ITSAppUsesNonExemptEncryption: false,
+            NSLocationWhenInUseUsageDescription:
+                'Fuel Price New uses your location to show nearby fuel stations and find the lowest prices. Location is not stored on our servers.',
+            NSLocationAlwaysAndWhenInUseUsageDescription:
+                'Optional background location is not used; only in-app location for maps.',
+            LSApplicationQueriesSchemes: ['tomtomgo', 'com.tomtom.app', 'waze', 'comgooglemaps', 'maps', 'map'],
+            SKAdNetworkItems: [
+                { SKAdNetworkIdentifier: 'cstr6suwn9.skadnetwork' }, // Google
+                { SKAdNetworkIdentifier: 'v9wttpbfk9.skadnetwork' },
+                { SKAdNetworkIdentifier: 'n38lu8286q.skadnetwork' },
+                { SKAdNetworkIdentifier: 'p78adc93ut.skadnetwork' },
+                { SKAdNetworkIdentifier: '4fzdc2evr5.skadnetwork' },
+                { SKAdNetworkIdentifier: '4pfyvq9l8r.skadnetwork' },
+                { SKAdNetworkIdentifier: 'yclnxrl5pm.skadnetwork' },
+                { SKAdNetworkIdentifier: 'tl55sbb4fm.skadnetwork' },
+                { SKAdNetworkIdentifier: 'mlmmfzh3r3.skadnetwork' },
+                { SKAdNetworkIdentifier: 'klf5c3l5u5.skadnetwork' },
+                { SKAdNetworkIdentifier: 'hs6bdukanm.skadnetwork' },
+                { SKAdNetworkIdentifier: '9rd848q77k.skadnetwork' },
+            ],
+        },
+    },
+    android: {
+        adaptiveIcon: {
+            foregroundImage: './assets/adaptive-icon.png',
+            backgroundColor: '#0d47a1',
+        },
+        package: 'com.fuel.price.global',
+        permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
+    },
+    web: {
+        favicon: './assets/favicon.png',
+        bundler: 'metro',
+    },
+    plugins: [
+        ...(config.plugins || []),
+        [
+            'react-native-google-mobile-ads',
+            {
+                androidAppId: process.env.ANDROID_ADMOB_APP_ID ?? 'ca-app-pub-3940256099942544~3347511713',
+                iosAppId: process.env.IOS_ADMOB_APP_ID ?? 'ca-app-pub-3940256099942544~1458002511',
+            },
+        ],
+        [
+            'expo-notifications',
+            {
+                color: '#0d47a1',
+            },
+        ],
+    ],
+    extra: {
+        ...(config.extra || {}),
+        tomtomApiKey: process.env.TOMTOM_API_KEY ?? config.extra?.tomtomApiKey ?? '',
+    },
+});
+
+export default defineConfig;

@@ -1,0 +1,107 @@
+{
+    "app": {
+        "title": "Cheap Fuel Global",
+        "tagline": "Precios de combustible privados"
+    },
+    "tabs": {
+        "map": "Mapa",
+        "list": "Estaciones",
+        "savings": "Ahorros",
+        "settings": "Ajustes"
+    },
+    "map": {
+        "findCheapest": "Encontrar el más barato",
+        "locating": "Obteniendo ubicación…",
+        "permissionDenied": "Se necesita permiso de ubicación para mostrar estaciones cercanas.",
+        "noCheapest": "Ninguna estación coincide con tus filtros.",
+        "openFilters": "Filtros",
+        "searchArea": "Buscar en esta zona",
+        "searchPlaceholder": "Buscar ciudad o dirección…",
+        "stationsFound": "{{count}} estaciones encontradas",
+        "noStations": "No se encontraron estaciones",
+        "noStationsHint": "Intenta aumentar el radio de búsqueda o mueve el mapa a otra zona."
+    },
+    "station": {
+        "details": "Detalles de la estación",
+        "navigate": "Navegar",
+        "waze": "Abrir en Waze",
+        "tomtom": "TomTom Go",
+        "distance": "A {{km}} km",
+        "reportPrice": "Reportar un precio",
+        "hours": "Horarios",
+        "fuels": "Combustibles",
+        "noPrice": "No hay datos de precios disponibles para esta estación.",
+        "call": "Llamar"
+    },
+    "savings": {
+        "title": "Ahorros de Combustible",
+        "heroSub": "¿Realmente vale la pena conducir hasta una estación más barata?",
+        "tankSize": "Tamaño del tanque (litros)",
+        "unitLiter": "Litros",
+        "unitGallon": "Galones US",
+        "yourPrice": "Tu precio habitual",
+        "cheapestHint": "Usa la estación más barata visible para el combustible seleccionado.",
+        "kmPerLiter": "Economía de combustible (km por litro)",
+        "cta": "Calcular mis ahorros",
+        "nominal": "Ahorro al llenar",
+        "tripCost": "Costo de desvío",
+        "net": "Ahorro neto estimado",
+        "extraFuel": "Combustible extra para el viaje",
+        "cheapestNearby": "MÁS BARATO CERCANO",
+        "worthIt": "¡Vale la pena! 🎉",
+        "notWorthIt": "No vale la pena",
+        "saveAmount": "Ahorras {{amount}} tras gastos de combustible",
+        "costAmount": "Ir allí cuesta {{amount}} más de lo que ahorras",
+        "netSavingPerFill": "ahorro neto por llenado",
+        "monthlySaving": "Ahorro mensual est.",
+        "tipMonthly": "La estimación mensual asume 4 llenados al mes.",
+        "priceComparison": "Comparación de Precios",
+        "stationsCount": "{{count}} estaciones",
+        "trueSavingsCalc": "Calculadora de Ahorro Real",
+        "emptyHint": "Abre la pestaña Mapa para encontrar estaciones cercanas primero"
+    },
+    "settings": {
+        "title": "Filtros y ajustes",
+        "fuelType": "Tipo de combustible",
+        "fuelAll": "Todos",
+        "openNow": "Abierto ahora",
+        "priceMin": "Precio mín",
+        "priceMax": "Precio máx",
+        "country": "País (ISO, ej. ES)",
+        "clearCountry": "Borrar filtro de país",
+        "language": "Idioma",
+        "theme": "Tema",
+        "themeSystem": "Sistema",
+        "themeLight": "Claro",
+        "themeDark": "Oscuro",
+        "currencyManual": "Mostrar precios en (anulación opcional)",
+        "searchRadius": "Radio de búsqueda",
+        "priceAlerts": "Alertas de precios",
+        "alertsEnable": "Habilitar alertas en segundo plano",
+        "alertsHint": "Recibe notificaciones cuando encontremos combustible barato.",
+        "privacy": "Sin cuentas, sin análisis personal. Los anuncios pueden mostrarse a través de Google AdMob. La ubicación se usa solo en tu dispositivo.",
+        "dataSafety": "La ubicación no se envía a nuestros servidores."
+    },
+    "sort": {
+        "closest": "Más cercana",
+        "cheapest": "Más barata"
+    },
+    "fuel": {
+        "euro95": "Euro 95",
+        "euro98": "Euro 98 / Super",
+        "diesel": "Diésel",
+        "lpg": "GLP",
+        "regular": "Regular",
+        "midgrade": "Intermedio",
+        "premium": "Premium",
+        "e85": "E85",
+        "cng": "GNC"
+    },
+    "common": {
+        "retry": "Reintentar",
+        "loading": "Cargando…",
+        "error": "Algo salió mal",
+        "ok": "OK",
+        "cancel": "Cancelar"
+    }
+}
