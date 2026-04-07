@@ -183,7 +183,8 @@ export async function startBackgroundAlerts(): Promise<boolean> {
   const alert = await loadPriceAlert();
   if (!alert.enabled) return false;
 
-  const { status } = await Location.requestBackgroundPermissionsAsync();
+  // Use foreground permissions only to comply with Google Play policy
+  const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') return false;
 
   const hasPermission = await requestNotificationPermission();
@@ -200,11 +201,6 @@ export async function startBackgroundAlerts(): Promise<boolean> {
     timeInterval: 15 * 60 * 1000,  // minimum 15 min between updates
     deferredUpdatesInterval: 15 * 60 * 1000,
     showsBackgroundLocationIndicator: false,
-    foregroundService: {
-      notificationTitle: 'Fuel Price Alerts',
-      notificationBody: 'Monitoring for cheap fuel prices nearby',
-      notificationColor: '#3B82F6',
-    },
   });
 
   return true;

@@ -38,6 +38,7 @@ export default function StationListScreen() {
   const setSelectedStation = useAppStore((s) => s.setSelectedStation);
 
   /* ── data ─── */
+  const stationsQueryKey = ['stations', coords?.latitude, coords?.longitude, searchRadius];
   const {
     data: stations = [],
     isLoading,
@@ -154,6 +155,7 @@ export default function StationListScreen() {
           allPrices={allPrices}
           userCoords={coords}
           onClose={() => setSelectedStation(null)}
+          stationsQueryKey={stationsQueryKey}
         />
       )}
     </View>

@@ -169,7 +169,7 @@ export function TomTomMap({
         el.style.fontSize = '12px';
         el.style.cursor = 'pointer';
         el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        el.innerText = best ? `${best.currency}${price.toFixed(2)}` : '?';
+        el.innerText = best ? `${best.currency}${price.toFixed(2)}` : '⛽';
         
         el.onclick = (e) => {
           e.stopPropagation();
@@ -185,7 +185,7 @@ export function TomTomMap({
         // Update existing marker element price/color if needed
         const el = marker.getElement();
         el.style.backgroundColor = color;
-        el.innerText = best ? `${best.currency}${price.toFixed(2)}` : '?';
+        el.innerText = best ? `${best.currency}${price.toFixed(2)}` : '⛽';
         if (station.id === selectedStationId) {
           el.style.transform = 'scale(1.2)';
           el.style.zIndex = '1000';

@@ -6,7 +6,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     name: config.name || 'Cheap Fuel Price Global',
     slug: config.slug || 'cheap-fuel-global',
     owner: 'patrickdjeck',
-    version: config.version || '1.0.0',
+    version: config.version || '1.0.3',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
     userInterfaceStyle: config.userInterfaceStyle || 'automatic',
@@ -23,8 +23,6 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             ITSAppUsesNonExemptEncryption: false,
             NSLocationWhenInUseUsageDescription:
                 'Fuel Price New uses your location to show nearby fuel stations and find the lowest prices. Location is not stored on our servers.',
-            NSLocationAlwaysAndWhenInUseUsageDescription:
-                'Optional background location is not used; only in-app location for maps.',
             LSApplicationQueriesSchemes: ['tomtomgo', 'com.tomtom.app', 'waze', 'comgooglemaps', 'maps', 'map'],
             SKAdNetworkItems: [
                 { SKAdNetworkIdentifier: 'cstr6suwn9.skadnetwork' }, // Google
@@ -48,7 +46,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             backgroundColor: '#0d47a1',
         },
         package: 'com.fuel.price.global',
-        permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
+        permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS'],
     },
     web: {
         favicon: './assets/favicon.png',
@@ -73,6 +71,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     extra: {
         ...(config.extra || {}),
         tomtomApiKey: process.env.TOMTOM_API_KEY ?? config.extra?.tomtomApiKey ?? '',
+        googleAiApiKey: process.env.GOOGLE_AI_API_KEY ?? config.extra?.googleAiApiKey ?? '',
     },
 });
 

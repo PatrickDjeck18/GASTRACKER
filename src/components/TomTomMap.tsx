@@ -124,7 +124,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
       var fp=fps?(gFilter?s.fuelPrices.find(function(p){return p.fuelType===gFilter;})||s.fuelPrices[0]:s.fuelPrices[0]):null;
       var price=fp?fp.price:0,cur=fp?fp.currency:'USD';
       var tc=tierCol(tier(price,gPrices));
-      var lbl=price>0?(sym(cur)+price.toFixed(2)):'?';
+      var lbl=price>0?(sym(cur)+price.toFixed(2)):'⛽';
       var isSel=s.id===gSelId;
       var mk=markers.get(s.id);
       if(!mk){

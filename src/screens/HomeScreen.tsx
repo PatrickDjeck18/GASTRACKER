@@ -266,6 +266,7 @@ export default function HomeScreen() {
   }, [coords]);
 
   /* ── stations ─── */
+  const stationsQueryKey = ['stations', searchCentre?.latitude, searchCentre?.longitude, searchRadius];
   const { data: stations = [], isLoading } = useStations({
     lat: searchCentre?.latitude, lon: searchCentre?.longitude, radius: searchRadius, enabled: !!searchCentre,
   });
@@ -301,8 +302,7 @@ export default function HomeScreen() {
   /* ── callbacks ─── */
   const handleSelect = useCallback((id: string) => {
     setSelectedStation(id || null);
-    if (id) maybeShowAd();
-  }, [setSelectedStation, maybeShowAd]);
+  }, [setSelectedStation]);
 
   const handleRecenter = useCallback(() => {
     if (!coords) return;
@@ -448,6 +448,7 @@ export default function HomeScreen() {
           allPrices={allPrices}
           userCoords={coords}
           onClose={() => setSelectedStation(null)}
+          stationsQueryKey={stationsQueryKey}
         />
       )}
 

@@ -10,6 +10,8 @@ export interface FuelPrice {
   lastUpdated?: string;
 }
 
+export type PriceSource = 'tomtom' | 'gemini' | 'gemini-grounded';
+
 export interface Station {
   id: string;
   name: string;
@@ -21,6 +23,10 @@ export interface Station {
   phone?: string;
   openingHours?: string;
   categories?: string[];
+  /** Where the fuel price data came from */
+  priceSource?: PriceSource;
+  /** Optional attribution text/URL from Gemini grounding */
+  priceAttribution?: string;
 }
 
 /* ── TomTom API shapes ────────────────────────────── */

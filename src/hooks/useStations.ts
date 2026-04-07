@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { searchGasStations } from '../api/tomtom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchAndEnrichStations, enrichStation } from '../services/fuelPriceService';
 import { DEFAULT_SEARCH_RADIUS } from '../constants/fuelTypes';
 import type { Station } from '../types/station';
 
@@ -18,10 +18,32 @@ export function useStations({
 }: UseStationsOptions) {
   return useQuery<Station[], Error>({
     queryKey: ['stations', lat, lon, radius],
-    queryFn: () => searchGasStations(lat!, lon!, radius),
+    queryFn: () => fetchAndEnrichStations(lat!, lon!, radius),
     enabled: enabled && lat != null && lon != null,
-    staleTime: 2 * 60 * 1000,        // 2 min
-    gcTime: 5 * 60 * 1000,            // 5 min
+    staleTime: 2 * 60 * 1000,   // 2 min
+    gcTime: 5 * 60 * 1000,       // 5 min
     retry: 2,
   });
+}
+
+/**
+ * Hook to enrich a single station on-demand (e.g. when user opens the detail modal).
+ * Updates the station in-place inside the React Query cache.
+ */
+export function useEnrichStation() {
+  const qc = useQueryClient();
+
+  return async function enrich(station: Station, queryKey: unknown[]): Promise<Station> {
+    if (station.fuelPrices.length > 0) return station;
+
+    const enriched = await enrichStation(station);
+
+    // Update the cached station list so the map markers also reflect the new price
+    qc.setQueryData<Station[]>(queryKey, (prev) => {
+      if (!prev) return prev;
+      return prev.map((s) => (s.id === enriched.id ? enriched : s));
+    });
+
+    return enriched;
+  };
 }

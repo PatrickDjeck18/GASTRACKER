@@ -76,6 +76,7 @@ export default function HomeScreen() {
     }
   }, [coords]);
 
+  const stationsQueryKey = ['stations', searchCentre?.latitude, searchCentre?.longitude, searchRadius];
   const { data: stations = [], isLoading } = useStations({
     lat: searchCentre?.latitude,
     lon: searchCentre?.longitude,
@@ -95,8 +96,7 @@ export default function HomeScreen() {
 
   const handleStationSelect = useCallback((id: string) => {
     setSelectedStation(id || null);
-    if (id) maybeShowAd();
-  }, [setSelectedStation, maybeShowAd]);
+  }, [setSelectedStation]);
 
   const handleRecenter = useCallback(() => {
     if (!coords) return;
@@ -248,6 +248,7 @@ export default function HomeScreen() {
           allPrices={allPrices}
           userCoords={coords}
           onClose={() => setSelectedStation(null)}
+          stationsQueryKey={stationsQueryKey}
         />
       )}
     </View>

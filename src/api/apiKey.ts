@@ -6,6 +6,12 @@ import Constants from 'expo-constants';
 export const TOMTOM_API_KEY: string =
   (Constants.expoConfig?.extra?.tomtomApiKey as string) ?? '';
 
+/**
+ * Google AI (Gemini) API key for real-time fuel price search
+ */
+export const GOOGLE_AI_API_KEY: string =
+  (Constants.expoConfig?.extra?.googleAiApiKey as string) ?? '';
+
 /** Check that the key is present and warn once */
 let _warned = false;
 export function assertApiKey(): boolean {

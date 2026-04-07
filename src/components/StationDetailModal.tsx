@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,14 @@ import {
   Pressable,
   Animated,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useIsDark } from '../hooks/useIsDark';
 import { useRouteInfo } from '../hooks/useRouteInfo';
 import { useTrafficFlow } from '../hooks/useTrafficFlow';
+import { useEnrichStation } from '../hooks/useStations';
+import { useInterstitialAd } from '../hooks/useInterstitialAd';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { PriceTag } from './PriceTag';
 import { RouteInfoCard } from './RouteInfoCard';
@@ -30,12 +33,36 @@ interface Props {
   allPrices: number[];
   userCoords?: { latitude: number; longitude: number } | null;
   onClose: () => void;
+  /** The query key used for the station list, needed to update the cache */
+  stationsQueryKey?: unknown[];
 }
 
-export function StationDetailModal({ station, allPrices, userCoords, onClose }: Props) {
+export function StationDetailModal({ station, allPrices, userCoords, onClose, stationsQueryKey }: Props) {
   const isDark = useIsDark();
   const t = isDark ? Colors.dark : Colors.light;
   const { t: tr } = useTranslation();
+  const enrichStation = useEnrichStation();
+  const { showAdNow } = useInterstitialAd();
+
+  /* ── Local enriched station state ─── */
+  const [enriched, setEnriched] = useState<Station | null>(null);
+  const [enriching, setEnriching] = useState(false);
+
+  // Reset and auto-enrich when station changes
+  useEffect(() => {
+    setEnriched(null);
+    if (!station) return;
+    if (station.fuelPrices.length === 0) {
+      setEnriching(true);
+      enrichStation(station, stationsQueryKey ?? [])
+        .then((s) => setEnriched(s))
+        .catch(() => {})
+        .finally(() => setEnriching(false));
+    }
+  }, [station?.id]);
+
+  // Use enriched data if available, fall back to raw station
+  const displayStation = enriched ?? station;
 
   const slideAnim = useRef(new Animated.Value(1000)).current;
 
@@ -55,7 +82,10 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose }: 
       toValue: 1000,
       duration: 250,
       useNativeDriver: true,
-    }).start(() => onClose());
+    }).start(() => {
+      onClose();
+      showAdNow();
+    });
   };
 
   /* ── Route info (Routing API) ─── */
@@ -76,7 +106,9 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose }: 
 
   if (!station) return null;
 
-  const hasPrices = station.fuelPrices.length > 0;
+  const hasPrices = (displayStation?.fuelPrices.length ?? 0) > 0;
+  const isGeminiSource = displayStation?.priceSource === 'gemini' || displayStation?.priceSource === 'gemini-grounded';
+  const isGrounded = displayStation?.priceSource === 'gemini-grounded';
 
   return (
     <Modal
@@ -113,6 +145,13 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose }: 
 
           {/* Header */}
           <View style={styles.headerRow}>
+            <TouchableOpacity 
+              style={[styles.backIcon, { backgroundColor: t.surfaceElevated }]} 
+              onPress={handleClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <MaterialCommunityIcons name="chevron-left" size={26} color={t.text} />
+            </TouchableOpacity>
             <View style={styles.headerText}>
               <Text style={[styles.stationName, { color: t.text }]}>
                 {station.brand ?? station.name}
@@ -121,13 +160,6 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose }: 
                 {station.address}
               </Text>
             </View>
-            <TouchableOpacity 
-              style={[styles.closeIcon, { backgroundColor: t.surfaceElevated }]} 
-              onPress={handleClose}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <MaterialCommunityIcons name="close" size={22} color={t.textMuted} />
-            </TouchableOpacity>
           </View>
 
           {/* Distance + Hours + Traffic row */}
@@ -160,29 +192,51 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose }: 
               <Text style={[styles.sectionTitle, { color: t.text }]}>
                 {tr('station.fuels')}
               </Text>
+              {/* AI badge */}
+              {isGeminiSource && (
+                <View style={[styles.aiBadge, { backgroundColor: isGrounded ? '#4CAF5020' : '#9C27B020', borderColor: isGrounded ? '#4CAF50' : '#9C27B0' }]}>
+                  <MaterialCommunityIcons name="google" size={11} color={isGrounded ? '#4CAF50' : '#9C27B0'} />
+                  <Text style={[styles.aiBadgeText, { color: isGrounded ? '#4CAF50' : '#9C27B0' }]}>
+                    {isGrounded ? 'AI · Verified' : 'AI'}
+                  </Text>
+                </View>
+              )}
             </View>
 
-            {hasPrices ? (
-              station.fuelPrices.map((fp, i) => {
-                const tier = getPriceTier(fp.price, allPrices);
-                const isLast = i === station.fuelPrices.length - 1;
-                return (
-                  <View
-                    key={i}
-                    style={[
-                      styles.fuelRow, 
-                      !isLast && { borderBottomColor: t.borderSubtle, borderBottomWidth: StyleSheet.hairlineWidth }
-                    ]}
-                  >
-                    <Text style={[styles.fuelType, { color: t.text }]}>{fp.fuelType}</Text>
-                    <PriceTag
-                      label={formatPrice(fp.price, fp.currency)}
-                      tier={tier}
-                      size="sm"
-                    />
-                  </View>
-                );
-              })
+            {enriching ? (
+              <View style={styles.enrichingRow}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={[styles.enrichingText, { color: t.textMuted }]}>Looking up live prices…</Text>
+              </View>
+            ) : hasPrices ? (
+              <>
+                {displayStation!.fuelPrices.map((fp, i) => {
+                  const tier = getPriceTier(fp.price, allPrices);
+                  const isLast = i === displayStation!.fuelPrices.length - 1;
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.fuelRow,
+                        !isLast && { borderBottomColor: t.borderSubtle, borderBottomWidth: StyleSheet.hairlineWidth }
+                      ]}
+                    >
+                      <Text style={[styles.fuelType, { color: t.text }]}>{fp.fuelType}</Text>
+                      <PriceTag
+                        label={formatPrice(fp.price, fp.currency)}
+                        tier={tier}
+                        size="sm"
+                      />
+                    </View>
+                  );
+                })}
+                {/* Attribution */}
+                {isGeminiSource && displayStation?.priceAttribution ? (
+                  <Text style={[styles.attribution, { color: t.textMuted }]} numberOfLines={2}>
+                    Source: {displayStation.priceAttribution}
+                  </Text>
+                ) : null}
+              </>
             ) : (
               <Text style={[styles.noPrice, { color: t.textMuted }]}>
                 {tr('station.noPrice')}
@@ -296,12 +350,12 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: Spacing.lg,
+    gap: Spacing.md,
   },
   headerText: {
     flex: 1,
-    marginRight: Spacing.md,
   },
   stationName: {
     fontSize: FontSize.xl + 2,
@@ -313,9 +367,9 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     lineHeight: 20,
   },
-  closeIcon: {
-    width: 36,
-    height: 36,
+  backIcon: {
+    width: 42,
+    height: 42,
     borderRadius: Radii.full,
     justifyContent: 'center',
     alignItems: 'center',
@@ -369,6 +423,36 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontStyle: 'italic',
     paddingVertical: Spacing.md,
+  },
+  aiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    marginLeft: 'auto',
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  enrichingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.lg,
+  },
+  enrichingText: {
+    fontSize: FontSize.sm,
+    fontStyle: 'italic',
+  },
+  attribution: {
+    fontSize: 10,
+    marginTop: Spacing.sm,
+    lineHeight: 14,
   },
   actions: {
     flexDirection: 'row',

@@ -85,31 +85,34 @@ export function bestPrice(
   return candidates.reduce((min, p) => (p.price < min.price ? p : min));
 }
 
-/** Compact price string, e.g. "€1.45" */
+/**
+ * Format a price using Intl.NumberFormat for locale-correct currency display.
+ * Falls back to a simple symbol+value if Intl is unavailable or currency is unknown.
+ */
 export function formatPrice(price: number, currency?: string): string {
-  const sym = currencySymbol(currency ?? 'EUR');
-  return `${sym}${price.toFixed(2)}`;
+  const code = (currency ?? 'EUR').toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3,
+    }).format(price);
+  } catch {
+    return `${currencySymbol(code)}${price.toFixed(2)}`;
+  }
 }
 
+/** Simple currency symbol lookup (used as Intl fallback) */
 export function currencySymbol(code: string): string {
   const map: Record<string, string> = {
-    EUR: '€',
-    USD: '$',
-    GBP: '£',
-    CHF: 'CHF ',
-    PLN: 'zł',
-    CZK: 'Kč',
-    SEK: 'kr',
-    NOK: 'kr',
-    DKK: 'kr',
-    HUF: 'Ft',
-    RON: 'lei',
-    BGN: 'лв',
-    TRY: '₺',
-    BRL: 'R$',
-    CAD: 'C$',
-    AUD: 'A$',
-    ZAR: 'R',
+    EUR: '€', USD: '$',  GBP: '£',  CHF: 'CHF ', PLN: 'zł',
+    CZK: 'Kč', SEK: 'kr', NOK: 'kr', DKK: 'kr',  HUF: 'Ft',
+    RON: 'lei', BGN: 'лв', TRY: '₺', BRL: 'R$', CAD: 'C$',
+    AUD: 'A$', NZD: 'NZ$', ZAR: 'R', NGN: '₦', KES: 'KSh',
+    GHS: '₵', EGP: '£',  MAD: 'MAD', AED: 'د.إ', SAR: '﷼',
+    INR: '₹', JPY: '¥',  CNY: '¥',  KRW: '₩', MXN: 'MX$',
+    RUB: '₽', UAH: '₴',
   };
   return map[code.toUpperCase()] ?? `${code} `;
 }
