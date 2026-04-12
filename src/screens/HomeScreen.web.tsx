@@ -8,7 +8,6 @@ import { useStations } from '../hooks/useStations';
 import { useIsDark } from '../hooks/useIsDark';
 import { useReverseGeocode } from '../hooks/useReverseGeocode';
 import { useSearchLocation } from '../hooks/useSearchLocation';
-import { usePriceAlert } from '../hooks/usePriceAlert';
 import { useAppStore } from '../store/useAppStore';
 
 import { TomTomMap } from '../components/TomTomMap';
@@ -48,13 +47,6 @@ export default function HomeScreen() {
       setLocationName(geoResult.city);
     }
   }, [geoResult, setLocationName]);
-
-  const { checkNow } = usePriceAlert();
-  useEffect(() => {
-    if (coords && !locLoading) {
-      checkNow(coords.latitude, coords.longitude);
-    }
-  }, [coords, locLoading, checkNow]);
 
   const {
     query: searchQuery,

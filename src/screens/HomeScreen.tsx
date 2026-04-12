@@ -12,7 +12,6 @@ import { useStations }        from '../hooks/useStations';
 import { useIsDark }          from '../hooks/useIsDark';
 import { useReverseGeocode }  from '../hooks/useReverseGeocode';
 import { useSearchLocation }  from '../hooks/useSearchLocation';
-import { usePriceAlert }      from '../hooks/usePriceAlert';
 import { useAppStore }        from '../store/useAppStore';
 import { useInterstitialAd }  from '../hooks/useInterstitialAd';
 
@@ -246,24 +245,28 @@ export default function HomeScreen() {
   const { data: geo } = useReverseGeocode({ lat: coords?.latitude, lon: coords?.longitude, enabled: !!coords });
   useEffect(() => { if (geo?.city) setLocationName(geo.city); }, [geo, setLocationName]);
 
-  /* ── price alerts ─── */
-  const { checkNow } = usePriceAlert();
-  useEffect(() => { if (coords && !locLoading) checkNow(coords.latitude, coords.longitude); }, [coords, locLoading, checkNow]);
-
   /* ── search ─── */
   const { query: sq, results: sr, loading: sl, search: onSearch, clear: clearSearch } = useSearchLocation(coords?.latitude, coords?.longitude);
   const [searchActive, setSearchActive] = useState(false);
 
   /* ── map ref & state ─── */
   const mapRef = useRef<TomTomMapRef>(null);
-  const [mapMoved,        setMapMoved]        = useState(false);
-  const [searchCentre,    setSearchCentre]    = useState(coords);
-  const [mapCenter,       setMapCenter]       = useState(coords);
+  const [mapMoved, setMapMoved] = useState(false);
   const [showRadiusPicker, setShowRadiusPicker] = useState(false);
 
+  // Use state for center but fall back to live coords if state is not yet set
+  const [searchCentreState, setSearchCentre] = useState<typeof coords>(null);
+  const [mapCenterState, setMapCenter] = useState<typeof coords>(null);
+
+  const searchCentre = searchCentreState || coords;
+  const mapCenter = mapCenterState || coords;
+
   useEffect(() => {
-    if (coords && !searchCentre) { setSearchCentre(coords); setMapCenter(coords); }
-  }, [coords]);
+    if (coords && !searchCentreState) {
+      setSearchCentre(coords);
+      setMapCenter(coords);
+    }
+  }, [coords, searchCentreState]);
 
   /* ── stations ─── */
   const stationsQueryKey = ['stations', searchCentre?.latitude, searchCentre?.longitude, searchRadius];
@@ -347,6 +350,7 @@ export default function HomeScreen() {
         isDark={isDark}
         userCoords={mapCenter}
         autoCenter={!mapMoved}
+        onMapMoved={() => setMapMoved(true)}
       />
 
       {/* ── TOP: search or location + chips ─────────── */}

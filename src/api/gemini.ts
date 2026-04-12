@@ -1,31 +1,88 @@
-import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
-import { GOOGLE_AI_API_KEY } from './apiKey';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FuelPrice } from '../types/station';
+import { logGeminiPriceRequest } from './firebase';
+import { callFirebaseFunction } from './firebaseFunctions';
 
 /* ─────────────────────────────────────────────────────
-   Gemini client (lazy-initialised)
+   Constants & Configuration
    ───────────────────────────────────────────────────── */
-let _genAI: GoogleGenerativeAI | null = null;
-
-function getClient(): GoogleGenerativeAI {
-  if (!_genAI) {
-    if (!GOOGLE_AI_API_KEY) {
-      throw new Error('[Gemini] No Google AI API key configured – add GOOGLE_AI_API_KEY to .env');
-    }
-    _genAI = new GoogleGenerativeAI(GOOGLE_AI_API_KEY);
-  }
-  return _genAI;
+const CACHE_PREFIX = '@gemini_price_cache_v2_';
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+/* ─────────────────────────────────────────────────────
+   Caching utilities
+   ───────────────────────────────────────────────────── */
+export function getCacheKey(stationName: string, address: string, currencyCode: string): string {
+  const normalizedStation = stationName.toLowerCase().replace(/\s+/g, '_');
+  const normalizedAddress = address.toLowerCase().replace(/\s+/g, '_');
+  return `${CACHE_PREFIX}${normalizedStation}_${normalizedAddress}_${currencyCode}`;
 }
 
-/* ─────────────────────────────────────────────────────
-   Safety settings – relaxed for commercial data
-   ───────────────────────────────────────────────────── */
-const SAFETY = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT,        threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,       threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
+export async function peekLocalGeminiCache(
+  stationName: string,
+  address: string,
+  currencyCode: string
+): Promise<GeminiFuelPriceResult | null> {
+  const cacheKey = getCacheKey(stationName, address, currencyCode);
+  return getCachedResult(cacheKey);
+}
+
+async function getCachedResult(cacheKey: string): Promise<GeminiFuelPriceResult | null> {
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    if (Date.now() - parsed.timestamp > CACHE_TTL) {
+      // Cache expired
+      await AsyncStorage.removeItem(cacheKey);
+      return null;
+    }
+
+    return parsed.data;
+  } catch (error) {
+    console.warn('[Gemini] Failed to read cache:', error);
+    return null;
+  }
+}
+
+async function setCachedResult(cacheKey: string, data: GeminiFuelPriceResult): Promise<void> {
+  try {
+    const cacheItem = {
+      timestamp: Date.now(),
+      data,
+    };
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheItem));
+  } catch (error) {
+    console.warn('[Gemini] Failed to write cache:', error);
+  }
+}
+
+/**
+ * Clear all expired Gemini cache entries (optional maintenance function)
+ */
+export async function clearExpiredGeminiCache(): Promise<void> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const geminiKeys = keys.filter(key => key.startsWith(CACHE_PREFIX));
+
+    for (const key of geminiKeys) {
+      const cached = await AsyncStorage.getItem(key);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp > CACHE_TTL) {
+            await AsyncStorage.removeItem(key);
+          }
+        } catch {
+          // Invalid JSON, remove it
+          await AsyncStorage.removeItem(key);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('[Gemini] Failed to clear expired cache:', error);
+  }
+}
 
 /* ─────────────────────────────────────────────────────
    Types
@@ -41,48 +98,11 @@ export interface GeminiFuelPriceResult {
 }
 
 /* ─────────────────────────────────────────────────────
-   Prompt builder
-   ───────────────────────────────────────────────────── */
-function buildPrompt(
-  stationName: string,
-  brand: string | undefined,
-  address: string,
-  currencyCode: string,
-): string {
-  const brandHint = brand && brand !== stationName ? ` (brand: ${brand})` : '';
-  return `
-You are a fuel price data assistant. Use Google Search to find the CURRENT fuel prices at this specific gas station:
-
-Station: ${stationName}${brandHint}
-Address: ${address}
-
-Task:
-1. Search for the latest fuel prices at this station.
-2. Return prices in ${currencyCode} if possible, otherwise in the local currency.
-3. Respond ONLY with a valid JSON object (no markdown fences, no explanation) in exactly this shape:
-{
-  "currency": "EUR",
-  "prices": [
-    { "fuelType": "Petrol 95", "price": 1.75 },
-    { "fuelType": "Diesel",    "price": 1.65 },
-    { "fuelType": "Petrol 98", "price": 1.88 }
-  ],
-  "attribution": "source description or URL"
-}
-
-Rules:
-- Include only fuel types that you actually found prices for.
-- Use clear fuel type names (e.g. "Regular Unleaded", "Diesel", "E85", "Premium Unleaded", "LPG", "CNG").
-- If you cannot find prices for this station, return: { "currency": "${currencyCode}", "prices": [], "attribution": "" }
-- Do NOT invent prices. Only include prices you verified via search.
-`.trim();
-}
-
-/* ─────────────────────────────────────────────────────
    Main export
    ───────────────────────────────────────────────────── */
 /**
  * Fetch real-time fuel prices for a given station using Gemini + Google Search grounding.
+ * Includes caching (6 hours), retry logic, and rate limit handling.
  *
  * @param stationName   Display name of the station
  * @param brand         Brand name (e.g. "Shell", "BP")
@@ -96,56 +116,69 @@ export async function fetchFuelPricesWithGemini(
   address: string,
   currencyCode: string,
 ): Promise<GeminiFuelPriceResult> {
+  const startTime = Date.now();
   const fallback: GeminiFuelPriceResult = { prices: [], currency: currencyCode, grounded: false };
 
+  // 1. Check cache first
+  const cacheKey = getCacheKey(stationName, address, currencyCode);
+  const cached = await getCachedResult(cacheKey);
+  if (cached) {
+    console.log('[Gemini] Returning cached result for', stationName);
+    // Log cache hit (fire-and-forget)
+    logGeminiPriceRequest(
+      stationName,
+      address,
+      currencyCode,
+      cached.prices.length,
+      Date.now() - startTime,
+      cached.grounded,
+      'cached'
+    ).catch(() => {});
+    return cached;
+  }
+
   try {
-    const client = getClient();
-    const model = client.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      safetySettings: SAFETY,
-      tools: [{ googleSearch: {} } as any],
+    const result = await callFirebaseFunction<GeminiFuelPriceResult>('geminiFuelPrices', {
+      stationName,
+      brand,
+      address,
+      currencyCode,
     });
 
-    const prompt = buildPrompt(stationName, brand, address, currencyCode);
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text().trim();
+    // 4. Cache successful result
+    await setCachedResult(cacheKey, result);
+    console.log('[Gemini] Successfully fetched and cached prices for', stationName);
 
-    /* ── Parse JSON ── */
-    // Strip potential markdown code fences just in case
-    const jsonStr = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    // Log successful request (fire-and-forget)
+    logGeminiPriceRequest(
+      stationName,
+      address,
+      currencyCode,
+      result.prices.length,
+      Date.now() - startTime,
+      result.grounded,
+      undefined
+    );
 
-    let parsed: { currency?: string; prices?: Array<{ fuelType: string; price: number }>; attribution?: string };
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      console.warn('[Gemini] Failed to parse JSON response:', jsonStr.slice(0, 200));
-      return fallback;
-    }
+    return result;
 
-    if (!Array.isArray(parsed.prices) || parsed.prices.length === 0) {
-      return fallback;
-    }
-
-    const currency = parsed.currency ?? currencyCode;
-    const prices: FuelPrice[] = parsed.prices
-      .filter((p) => typeof p.fuelType === 'string' && typeof p.price === 'number' && p.price > 0)
-      .map((p) => ({
-        fuelType: p.fuelType,
-        price: p.price,
-        currency,
-        lastUpdated: new Date().toISOString(),
-      }));
-
-    /* ── Check grounding metadata ── */
-    const candidates = response.candidates ?? [];
-    const groundingMeta = (candidates[0] as any)?.groundingMetadata;
-    const grounded = !!(groundingMeta?.groundingChunks?.length);
-    const attribution = parsed.attribution || groundingMeta?.webSearchQueries?.[0] || undefined;
-
-    return { prices, currency, grounded, attribution };
   } catch (err) {
-    console.warn('[Gemini] fetchFuelPricesWithGemini error:', (err as Error).message);
+    const error = err as Error;
+    const durationMs = Date.now() - startTime;
+
+    console.warn('[Gemini] fetchFuelPricesWithGemini error:', error.message);
+
+    // Log error to Firebase (fire-and-forget)
+    logGeminiPriceRequest(
+      stationName,
+      address,
+      currencyCode,
+      0,
+      durationMs,
+      false,
+      error.message
+    ).catch(() => {});
+
     return fallback;
   }
 }

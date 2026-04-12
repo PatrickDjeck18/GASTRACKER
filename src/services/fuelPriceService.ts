@@ -1,7 +1,9 @@
 import { getLocales } from 'expo-localization';
+import { peekLocalGeminiCache, fetchFuelPricesWithGemini } from '../api/gemini';
 import { searchGasStations } from '../api/tomtom';
-import { fetchFuelPricesWithGemini } from '../api/gemini';
+import { saveEnrichedStation, logUserSearch } from '../api/firebase';
 import type { Station } from '../types/station';
+import type { QueryClient } from '@tanstack/react-query';
 
 /* ─────────────────────────────────────────────────────
    Currency detection
@@ -14,6 +16,13 @@ import type { Station } from '../types/station';
 export function getLocalCurrencyCode(): string {
   try {
     const locales = getLocales();
+    if (!locales || locales.length === 0) return 'EUR';
+    
+    // First try: native currency code from device locale
+    const currency = locales[0]?.currencyCode;
+    if (currency) return currency;
+    
+    // Fallback: map region code to currency manually
     const region = locales[0]?.regionCode ?? '';
     if (region) return regionToCurrency(region);
   } catch {
@@ -44,53 +53,108 @@ function regionToCurrency(region: string): string {
 const EAGER_ENRICH_COUNT = 5;
 
 /**
- * Fetch stations from TomTom, then enrich the nearest ones with
- * real-time Gemini fuel prices. Remaining stations get Gemini prices
- * only if explicitly requested via `enrichStation()`.
+ * Fetch stations from TomTom and return them **immediately**.
+ * Gemini enrichment happens in the background — prices will appear
+ * on the map as each station is enriched via React Query cache updates.
  */
 export async function fetchAndEnrichStations(
   lat: number,
   lon: number,
   radius: number,
+  queryClient?: QueryClient,
+  queryKey?: unknown[],
 ): Promise<Station[]> {
-  // 1. Get station list from TomTom (name, brand, exact address, coordinates)
+  // 1. Get station list from TomTom (fast, direct API call)
   const stations = await searchGasStations(lat, lon, radius);
+
+  // Log user search (fire-and-forget)
+  logUserSearch(lat, lon, radius, stations.length).catch(() => {});
+
   if (stations.length === 0) return [];
 
+  // 2. Synchronously check local cache to pre-populate stations instantly
+  //    This avoids massive UI re-renders if prices are already fetched locally.
   const currency = getLocalCurrencyCode();
+  const eagerGroup = stations.slice(0, EAGER_ENRICH_COUNT);
+  const networkQueue: Station[] = [];
 
-  // 2. Eagerly enrich the nearest N stations (already sorted by distance from TomTom)
+  await Promise.all(
+    eagerGroup.map(async (station) => {
+      const cached = await peekLocalGeminiCache(station.name, station.address, currency);
+      if (cached && cached.prices.length > 0) {
+        // Hydrate instantly
+        station.fuelPrices = cached.prices;
+        station.priceSource = cached.grounded ? 'gemini-grounded' : 'gemini';
+        station.priceAttribution = cached.attribution;
+      } else {
+        // Needs fresh fetch
+        networkQueue.push(station);
+      }
+    })
+  );
+
+  // 3. Kick off background enrichment ONLY for stations not found in cache
+  if (queryClient && queryKey && networkQueue.length > 0) {
+    enrichInBackground(networkQueue, queryClient, queryKey);
+  }
+
+  return stations;
+}
+
+/**
+ * Enrich the nearest stations with Gemini prices in the background.
+ * Each successfully enriched station updates the React Query cache,
+ * causing the map markers to update with prices progressively.
+ */
+async function enrichInBackground(
+  stations: Station[],
+  queryClient: QueryClient,
+  queryKey: unknown[],
+): Promise<void> {
+  const currency = getLocalCurrencyCode();
   const eagerGroup = stations.slice(0, EAGER_ENRICH_COUNT);
 
+  console.log(`[Enrich] Starting parallel background enrichment for ${eagerGroup.length} stations`);
+
+  // Run all enrichments in parallel
   await Promise.allSettled(
     eagerGroup.map(async (station) => {
-      // Only call Gemini if TomTom didn't already supply prices
-      if (station.fuelPrices.length === 0) {
+      try {
         const result = await fetchFuelPricesWithGemini(
           station.name,
           station.brand,
           station.address,
           currency,
         );
+
         if (result.prices.length > 0) {
-          station.fuelPrices = result.prices;
-          station.priceSource = result.grounded ? 'gemini-grounded' : 'gemini';
-          station.priceAttribution = result.attribution;
+          const priceSource = result.grounded ? 'gemini-grounded' : 'gemini';
+
+          // Update the React Query cache immediately as this specific station resolves
+          queryClient.setQueryData<Station[]>(queryKey, (prev) => {
+            if (!prev) return prev;
+            return prev.map((s) =>
+              s.id === station.id
+                ? { ...s, fuelPrices: result.prices, priceSource, priceAttribution: result.attribution }
+                : s
+            );
+          });
+
+          console.log(`[Enrich] ✓ ${station.brand ?? station.name} — ${result.prices.length} prices`);
+
+          saveEnrichedStation(
+            { ...station, fuelPrices: result.prices, priceSource, priceAttribution: result.attribution },
+            priceSource,
+            result.attribution,
+          ).catch(() => {});
         }
-      } else {
-        station.priceSource = 'tomtom';
+      } catch (err) {
+        console.warn(`[Enrich] ✗ ${station.name}:`, err instanceof Error ? err.message : err);
       }
-    }),
+    })
   );
 
-  // Mark remaining stations so the UI knows they haven't been enriched yet
-  for (const station of stations.slice(EAGER_ENRICH_COUNT)) {
-    if (station.fuelPrices.length > 0) {
-      station.priceSource = 'tomtom';
-    }
-  }
-
-  return stations;
+  console.log('[Enrich] Background enrichment complete');
 }
 
 /**
@@ -108,10 +172,18 @@ export async function enrichStation(station: Station): Promise<Station> {
     currency,
   );
 
-  return {
+  const priceSource: import('../types/station').PriceSource = result.grounded ? 'gemini-grounded' : 'gemini';
+  const enrichedStation: import('../types/station').Station = {
     ...station,
     fuelPrices: result.prices,
-    priceSource: result.grounded ? 'gemini-grounded' : 'gemini',
+    priceSource,
     priceAttribution: result.attribution,
   };
+
+  // Save enriched station to Firebase if we got prices
+  if (result.prices.length > 0) {
+    saveEnrichedStation(enrichedStation, priceSource, result.attribution).catch(() => {});
+  }
+
+  return enrichedStation;
 }

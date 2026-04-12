@@ -16,9 +16,12 @@ export function useStations({
   radius = DEFAULT_SEARCH_RADIUS,
   enabled = true,
 }: UseStationsOptions) {
+  const queryClient = useQueryClient();
+  const queryKey = ['stations', lat, lon, radius];
+
   return useQuery<Station[], Error>({
-    queryKey: ['stations', lat, lon, radius],
-    queryFn: () => fetchAndEnrichStations(lat!, lon!, radius),
+    queryKey,
+    queryFn: () => fetchAndEnrichStations(lat!, lon!, radius, queryClient, queryKey),
     enabled: enabled && lat != null && lon != null,
     staleTime: 2 * 60 * 1000,   // 2 min
     gcTime: 5 * 60 * 1000,       // 5 min

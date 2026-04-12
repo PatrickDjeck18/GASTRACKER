@@ -23,7 +23,6 @@ export const useNotifications = () => {
         const hasPermission = await requestPermissions();
         if (hasPermission) {
           await scheduleDailyNotification();
-          await sendWelcomeNotification();
         }
       } catch (error) {
         console.error('Error setting up notifications:', error);
@@ -132,26 +131,3 @@ async function scheduleDailyNotification() {
   await AsyncStorage.setItem(NOTIFICATIONS_SCHEDULED_KEY, 'true');
 }
 
-const WELCOME_NOTIF_KEY = '@welcome_notif_sent';
-
-async function sendWelcomeNotification() {
-  const todayStr = new Date().toDateString();
-  const lastSent = await AsyncStorage.getItem(WELCOME_NOTIF_KEY);
-
-  if (lastSent !== todayStr) {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '⛽ Welcome Back to FuelFind',
-          body: 'Check the map to see the latest cheap fuel prices near you today.',
-          sound: true,
-        },
-        trigger: null,
-      });
-      await AsyncStorage.setItem(WELCOME_NOTIF_KEY, todayStr);
-    } catch (error) {
-      console.warn('[Notifications] Failed to send welcome notification:', error);
-      // Don't re-throw - this is expected when app is in background/closed
-    }
-  }
-}

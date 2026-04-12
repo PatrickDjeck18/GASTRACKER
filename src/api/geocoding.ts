@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { TOMTOM_API_KEY, assertApiKey } from './apiKey';
-
-const BASE_SEARCH = 'https://api.tomtom.com/search/2';
+import { TOMTOM_API_KEY } from './apiKey';
+import { executeFirebaseBackedApi } from './firebaseBackend';
 
 /* ─────────────────────────────────────────────────────
    1. Reverse Geocoding — coordinates → address / city
@@ -19,24 +18,29 @@ export async function reverseGeocode(
   lat: number,
   lon: number,
 ): Promise<ReverseGeocodeResult | null> {
-  if (!assertApiKey()) return null;
-
   try {
-    const url = `${BASE_SEARCH}/reverseGeocode/${lat},${lon}.json`;
-    const { data } = await axios.get(url, {
-      params: { key: TOMTOM_API_KEY },
+    return await executeFirebaseBackedApi<ReverseGeocodeResult | null>({
+      service: 'tomtom/reverse-geocode',
+      request: { lat, lon },
+      cacheTtlMs: 24 * 60 * 60 * 1000,
+      execute: async () => {
+        const url = `https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json`;
+        const { data } = await axios.get<any>(url, {
+          params: { key: TOMTOM_API_KEY },
+        });
+
+        const addr = data?.addresses?.[0]?.address;
+        if (!addr) return null;
+
+        return {
+          formattedAddress: addr.freeformAddress ?? '',
+          city: addr.municipality ?? addr.localName ?? '',
+          country: addr.country ?? '',
+          countryCode: addr.countryCode ?? '',
+          street: addr.streetName,
+        };
+      },
     });
-
-    const addr = data?.addresses?.[0]?.address;
-    if (!addr) return null;
-
-    return {
-      formattedAddress: addr.freeformAddress ?? '',
-      city: addr.municipality ?? addr.localName ?? '',
-      country: addr.country ?? '',
-      countryCode: addr.countryCode ?? '',
-      street: addr.streetName,
-    };
   } catch {
     return null;
   }
@@ -61,32 +65,37 @@ export async function searchLocation(
   lon?: number,
   limit: number = 8,
 ): Promise<SearchSuggestion[]> {
-  if (!assertApiKey() || !query.trim()) return [];
+  if (!query.trim()) return [];
 
   try {
-    const url = `${BASE_SEARCH}/search/${encodeURIComponent(query)}.json`;
-    const params: Record<string, any> = {
-      key: TOMTOM_API_KEY,
-      limit,
-      typeahead: true,
-      language: 'en-US',
-    };
-    if (lat != null && lon != null) {
-      params.lat = lat;
-      params.lon = lon;
-    }
+    return await executeFirebaseBackedApi<SearchSuggestion[]>({
+      service: 'tomtom/search-location',
+      request: { query, lat, lon, limit },
+      cacheTtlMs: 30 * 60 * 1000,
+      execute: async () => {
+        const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json`;
+        const { data } = await axios.get<any>(url, {
+          params: {
+            key: TOMTOM_API_KEY,
+            lat,
+            lon,
+            limit,
+            language: 'en-US',
+            typeahead: true,
+          },
+        });
+        const results = data?.results ?? [];
 
-    const { data } = await axios.get(url, { params });
-    const results = data?.results ?? [];
-
-    return results.map((r: any): SearchSuggestion => ({
-      id: r.id ?? String(Math.random()),
-      name: r.poi?.name ?? r.address?.freeformAddress ?? 'Unknown',
-      address: r.address?.freeformAddress ?? '',
-      latitude: r.position?.lat ?? 0,
-      longitude: r.position?.lon ?? 0,
-      type: r.type ?? 'Unknown',
-    }));
+        return results.map((r: any): SearchSuggestion => ({
+          id: r.id ?? String(Math.random()),
+          name: r.poi?.name ?? r.address?.freeformAddress ?? 'Unknown',
+          address: r.address?.freeformAddress ?? '',
+          latitude: r.position?.lat ?? 0,
+          longitude: r.position?.lon ?? 0,
+          type: r.type ?? 'Unknown',
+        }));
+      },
+    });
   } catch {
     return [];
   }
@@ -106,26 +115,30 @@ export interface GeocodeResult {
 export async function geocodeAddress(
   query: string,
 ): Promise<GeocodeResult | null> {
-  if (!assertApiKey() || !query.trim()) return null;
+  if (!query.trim()) return null;
 
   try {
-    const url = `${BASE_SEARCH}/geocode/${encodeURIComponent(query)}.json`;
-    const { data } = await axios.get(url, {
-      params: {
-        key: TOMTOM_API_KEY,
-        limit: 1,
+    return await executeFirebaseBackedApi<GeocodeResult | null>({
+      service: 'tomtom/geocode',
+      request: { query },
+      cacheTtlMs: 24 * 60 * 60 * 1000,
+      execute: async () => {
+        const url = `https://api.tomtom.com/search/2/geocode/${encodeURIComponent(query)}.json`;
+        const { data } = await axios.get<any>(url, {
+          params: { key: TOMTOM_API_KEY, limit: 1 },
+        });
+
+        const r = data?.results?.[0];
+        if (!r) return null;
+
+        return {
+          latitude: r.position?.lat ?? 0,
+          longitude: r.position?.lon ?? 0,
+          formattedAddress: r.address?.freeformAddress ?? '',
+          countryCode: r.address?.countryCode ?? '',
+        };
       },
     });
-
-    const r = data?.results?.[0];
-    if (!r) return null;
-
-    return {
-      latitude: r.position?.lat ?? 0,
-      longitude: r.position?.lon ?? 0,
-      formattedAddress: r.address?.freeformAddress ?? '',
-      countryCode: r.address?.countryCode ?? '',
-    };
   } catch {
     return null;
   }

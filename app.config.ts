@@ -1,12 +1,24 @@
 import 'dotenv/config';
 import type { ExpoConfig, ConfigContext } from 'expo/config';
+import { withStringsXml } from 'expo/config-plugins';
+
+const withDefaultCFBundleDisplayName = (config: ExpoConfig) => {
+    return withStringsXml(config, (config) => {
+        config.modResults.resources.string = config.modResults.resources.string || [];
+        config.modResults.resources.string.push({
+            $: { name: 'CFBundleDisplayName' },
+            _: config.name || 'Cheap Fuel',
+        });
+        return config;
+    });
+};
 
 const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ...config,
     name: config.name || 'Cheap Fuel Price Global',
     slug: config.slug || 'cheap-fuel-global',
     owner: 'patrickdjeck',
-    version: config.version || '1.0.3',
+    version: config.version || '1.0.7',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
     userInterfaceStyle: config.userInterfaceStyle || 'automatic',
@@ -52,6 +64,12 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
         favicon: './assets/favicon.png',
         bundler: 'metro',
     },
+    locales: {
+        en: './app-locales/en.json',
+        es: './app-locales/es.json',
+        fr: './app-locales/fr.json',
+        de: './app-locales/de.json',
+    },
     plugins: [
         ...(config.plugins || []),
         [
@@ -70,9 +88,21 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ],
     extra: {
         ...(config.extra || {}),
-        tomtomApiKey: process.env.TOMTOM_API_KEY ?? config.extra?.tomtomApiKey ?? '',
-        googleAiApiKey: process.env.GOOGLE_AI_API_KEY ?? config.extra?.googleAiApiKey ?? '',
+        // TomTom map SDK/static tiles still require a client key for map rendering.
+        tomtomApiKey: process.env.TOMTOM_MAPS_PUBLIC_KEY ?? config.extra?.tomtomApiKey ?? '',
+        firebaseApiKey: process.env.FIREBASE_API_KEY ?? config.extra?.firebaseApiKey ?? '',
+        firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN ?? config.extra?.firebaseAuthDomain ?? '',
+        firebaseProjectId: process.env.FIREBASE_PROJECT_ID ?? config.extra?.firebaseProjectId ?? '',
+        firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET ?? config.extra?.firebaseStorageBucket ?? '',
+        firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID ?? config.extra?.firebaseMessagingSenderId ?? '',
+        firebaseAppId: process.env.FIREBASE_APP_ID ?? config.extra?.firebaseAppId ?? '',
+        firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID ?? config.extra?.firebaseMeasurementId ?? '',
+        firebaseFunctionsBaseUrl: process.env.FIREBASE_FUNCTIONS_BASE_URL ?? config.extra?.firebaseFunctionsBaseUrl ?? '',
+        firebaseFunctionsRequireAuth: process.env.FIREBASE_FUNCTIONS_REQUIRE_AUTH ?? config.extra?.firebaseFunctionsRequireAuth ?? 'false',
     },
 });
 
-export default defineConfig;
+export default (context: ConfigContext) => {
+    const config = defineConfig(context);
+    return withDefaultCFBundleDisplayName(config);
+};

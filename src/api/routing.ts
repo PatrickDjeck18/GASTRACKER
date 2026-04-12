@@ -1,11 +1,10 @@
 import axios from 'axios';
-import { TOMTOM_API_KEY, assertApiKey } from './apiKey';
+import { TOMTOM_API_KEY } from './apiKey';
+import { executeFirebaseBackedApi } from './firebaseBackend';
 import type {
   RouteInfo,
   TomTomRouteResponse,
 } from '../types/routing';
-
-const BASE_ROUTING = 'https://api.tomtom.com/routing/1';
 
 /**
  * Calculate a driving route between origin and destination.
@@ -17,41 +16,45 @@ export async function calculateRoute(
   destLat: number,
   destLon: number,
 ): Promise<RouteInfo | null> {
-  if (!assertApiKey()) return null;
-
   try {
-    const locations = `${originLat},${originLon}:${destLat},${destLon}`;
-    const url = `${BASE_ROUTING}/calculateRoute/${locations}/json`;
+    return await executeFirebaseBackedApi<RouteInfo | null>({
+      service: 'tomtom/routing',
+      request: { originLat, originLon, destLat, destLon },
+      cacheTtlMs: 5 * 60 * 1000,
+      execute: async () => {
+        const locations = `${originLat},${originLon}:${destLat},${destLon}`;
+        const url = `https://api.tomtom.com/routing/1/calculateRoute/${locations}/json`;
+        const { data } = await axios.get<TomTomRouteResponse>(url, {
+          params: {
+            key: TOMTOM_API_KEY,
+            travelMode: 'car',
+            traffic: 'true',
+            routeType: 'fastest',
+            language: 'en-US',
+          },
+        });
 
-    const { data } = await axios.get<TomTomRouteResponse>(url, {
-      params: {
-        key: TOMTOM_API_KEY,
-        travelMode: 'car',
-        traffic: 'true',
-        routeType: 'fastest',
-        language: 'en-US',
+        const route = data.routes?.[0];
+        if (!route) return null;
+
+        const { summary } = route;
+        const points = route.legs?.flatMap((leg) =>
+          leg.points.map((p) => ({
+            latitude: p.latitude,
+            longitude: p.longitude,
+          })),
+        ) ?? [];
+
+        return {
+          distanceMeters: summary.lengthInMeters,
+          travelTimeSeconds: summary.travelTimeInSeconds,
+          trafficDelaySeconds: summary.trafficDelayInSeconds,
+          departureTime: summary.departureTime,
+          arrivalTime: summary.arrivalTime,
+          points,
+        };
       },
     });
-
-    const route = data.routes?.[0];
-    if (!route) return null;
-
-    const { summary } = route;
-    const points = route.legs?.flatMap((leg) =>
-      leg.points.map((p) => ({
-        latitude: p.latitude,
-        longitude: p.longitude,
-      })),
-    ) ?? [];
-
-    return {
-      distanceMeters: summary.lengthInMeters,
-      travelTimeSeconds: summary.travelTimeInSeconds,
-      trafficDelaySeconds: summary.trafficDelayInSeconds,
-      departureTime: summary.departureTime,
-      arrivalTime: summary.arrivalTime,
-      points,
-    };
   } catch (e) {
     console.warn('[TomTom Routing]', e);
     return null;
