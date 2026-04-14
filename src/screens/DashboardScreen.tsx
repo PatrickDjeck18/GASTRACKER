@@ -14,6 +14,7 @@ import { useAppStore } from '../store/useAppStore';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { bestPrice, formatPrice, getPriceTier, tierColor } from '../utils/price';
 import { formatDistance } from '../utils/geo';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station } from '../types/station';
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -221,6 +222,7 @@ export default function DashboardScreen() {
   const thm = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<any>>();
+  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
 
   /* ── data ─── */
   const { coords } = useLocation();
@@ -309,7 +311,7 @@ export default function DashboardScreen() {
             <StatPill
               icon="arrow-down-bold"
               label="Best"
-              value={minPrice != null ? formatPrice(minPrice) : '—'}
+              value={minPrice != null ? formatPrice(minPrice, localCurrency) : '—'}
               color={Colors.price.cheap}
               isDark={isDark}
               delay={250}
@@ -317,7 +319,7 @@ export default function DashboardScreen() {
             <StatPill
               icon="chart-timeline-variant"
               label="Average"
-              value={avgPrice != null ? formatPrice(avgPrice) : '—'}
+              value={avgPrice != null ? formatPrice(avgPrice, localCurrency) : '—'}
               color={Colors.price.medium}
               isDark={isDark}
               delay={350}

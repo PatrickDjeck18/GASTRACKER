@@ -22,6 +22,7 @@ import { EmptyState }         from '../components/EmptyState';
 import { SearchBar }          from '../components/SearchBar';
 import { AdBanner }           from '../components/AdBanner';
 import { SkeletonCards }      from '../components/SkeletonCards';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
 import { bestPrice, formatPrice, getPriceTier } from '../utils/price';
 import { formatDistance }     from '../utils/geo';
@@ -238,6 +239,7 @@ export default function HomeScreen() {
   const isDark = useIsDark();
   const thm    = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
+  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
 
   /* ── location ─── */
   const { coords, loading: locLoading, error: locError, refresh: reLocate } = useLocation();
@@ -304,7 +306,7 @@ export default function HomeScreen() {
       [...stations]
         .filter((s) => bestPrice(s, fuelFilter) != null)
         .sort((a, b) => (bestPrice(a, fuelFilter)?.price ?? 0) - (bestPrice(b, fuelFilter)?.price ?? 0))
-        .slice(0, 6),
+        .slice(0, 10),
     [stations, fuelFilter],
   );
 
@@ -433,7 +435,7 @@ export default function HomeScreen() {
             <Text style={[g.countTxt, { color: thm.text }]}>{stations.length} <Text style={{fontWeight: '400', fontSize: FontSize.xs}}>Stations</Text></Text>
             {minPrice != null && (
               <Text style={[g.countSub, { color: Colors.price.cheap }]}>
-                from {formatPrice(minPrice)}
+                from {formatPrice(minPrice, localCurrency)}
               </Text>
             )}
           </View>

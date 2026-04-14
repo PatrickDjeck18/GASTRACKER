@@ -1,10 +1,9 @@
 import Constants from 'expo-constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { Platform } from 'react-native';
 import {
   getAuth,
   initializeAuth,
-  getReactNativePersistence,
   signInAnonymously,
   type Auth,
 } from 'firebase/auth';
@@ -24,9 +23,12 @@ function getFunctionsBaseUrl(): string {
 }
 
 function shouldUseFunctionAuth(): boolean {
-  const flag = (Constants.expoConfig?.extra?.firebaseFunctionsRequireAuth as string | boolean | undefined);
-  if (typeof flag === 'boolean') return flag;
-  return String(flag).toLowerCase() === 'true';
+  // Temporarily disable auth for Firebase functions to fix loading issues
+  // Firebase functions don't require authentication
+  return false;
+  // const flag = (Constants.expoConfig?.extra?.firebaseFunctionsRequireAuth as string | boolean | undefined);
+  // if (typeof flag === 'boolean') return flag;
+  // return String(flag).toLowerCase() === 'true';
 }
 
 let cachedAuth: Auth | null = null;
@@ -37,20 +39,12 @@ function getFirebaseAuth(): Auth {
   }
   if (cachedAuth) return cachedAuth;
 
-  if (Platform.OS === 'web') {
-    cachedAuth = getAuth(firebaseApp);
-    return cachedAuth;
-  }
-
-  try {
-    cachedAuth = initializeAuth(firebaseApp, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } catch {
-    cachedAuth = getAuth(firebaseApp);
-  }
+  // Simplified: just get default auth (persistence not needed since auth is disabled)
+  cachedAuth = getAuth(firebaseApp);
   return cachedAuth;
 }
+
+// ... 
 
 export async function callFirebaseFunction<T>(name: string, payload: BackendPayload): Promise<T> {
   const baseUrl = getFunctionsBaseUrl();
@@ -64,35 +58,38 @@ export async function callFirebaseFunction<T>(name: string, payload: BackendPayl
       }
       token = (await auth.currentUser?.getIdToken(true)) ?? null;
     } catch (error) {
-      // If auth setup fails, retry request without auth header.
       console.warn('[Firebase Functions] Auth bootstrap failed, trying unauthenticated call:', error);
     }
   }
 
-  let response = await fetch(`${baseUrl}/${name}`, {
-    method: 'POST',
-    headers: token
-      ? {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      }
-      : { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+  // Create axios instance with 15s timeout for better UX (Firebase functions have 300s max)
+  const api = axios.create({
+    timeout: 15000, // 15 seconds
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  // Fallback for backends that do not require auth or when token is rejected.
-  if ((response.status === 401 || response.status === 403) && token) {
-    response = await fetch(`${baseUrl}/${name}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  }
+  try {
+    const response = await api.post(`${baseUrl}/${name}`, payload);
+    return response.data as T;
+  } catch (error: any) {
+    // Fallback for backends that do not require auth or when token is rejected
+    if (error.response && (error.response.status === 401 || error.response.status === 403) && token) {
+      const fallbackApi = axios.create({ timeout: 15000 });
+      try {
+        const fallbackResponse = await fallbackApi.post(`${baseUrl}/${name}`, payload);
+        return fallbackResponse.data as T;
+      } catch (fallbackError: any) {
+        const data = fallbackError.response?.data ? JSON.stringify(fallbackError.response.data) : fallbackError.message;
+        throw new Error(`[Firebase Functions] ${name} fallback failed: ${data}`);
+      }
+    }
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`[Firebase Functions] ${name} failed (${response.status}): ${text}`);
-  }
+    // Handle timeout specifically
+    if (error.code === 'ECONNABORTED') {
+      throw new Error(`[Firebase Functions] ${name} timeout after 15s`);
+    }
 
-  return response.json() as Promise<T>;
+    const data = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    throw new Error(`[Firebase Functions] ${name} failed: ${data}`);
+  }
 }

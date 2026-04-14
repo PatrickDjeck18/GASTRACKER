@@ -50,7 +50,7 @@ function regionToCurrency(region: string): string {
    ───────────────────────────────────────────────────── */
 
 // How many of the nearest stations to eagerly enrich with Gemini
-const EAGER_ENRICH_COUNT = 3;
+const EAGER_ENRICH_COUNT = 10;
 
 /**
  * Fetch stations from TomTom and return them **immediately**.

@@ -8,7 +8,8 @@
             "developmentClient": true,
             "distribution": "internal",
             "android": {
-                "gradleCommand": ":app:assembleDebug"
+                "gradleCommand": ":app:assembleDebug",
+                "credentialsSource": "local"
             },
             "ios": {
                 "simulator": true
@@ -26,7 +27,8 @@
             "distribution": "internal",
             "channel": "preview",
             "android": {
-                "buildType": "apk"
+                "buildType": "apk",
+                "credentialsSource": "local"
             },
             "ios": {
                 "simulator": true
@@ -53,7 +55,8 @@
             "autoIncrement": true,
             "channel": "production",
             "android": {
-                "buildType": "app-bundle"
+                "buildType": "app-bundle",
+                "credentialsSource": "local"
             },
             "ios": {
                 "enterpriseProvisioning": "universal"

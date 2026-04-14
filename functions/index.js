@@ -12,7 +12,8 @@ const GEMINI_OPTS = {
   region: 'us-central1',
   secrets: ['GOOGLE_AI_API_KEY'],
   concurrency: 40,
-  memory: '1GiB'
+  memory: '1GiB',
+  timeoutSeconds: 300
 };
 
 /**
@@ -225,6 +226,7 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
       const { GoogleGenerativeAI } = require('@google/generative-ai');
       const { stationName, brand, address, currencyCode } = req.body || {};
       const key = process.env.GOOGLE_AI_API_KEY || process.env.FIREBASE_API_KEY;
+      logger.info(`Gemini Fuel Prices start: ${stationName} in ${address}`);
       if (!key) throw new Error('Missing Gemini/Firebase API Key');
 
       const brandHint = brand && brand !== stationName ? ` (brand: ${brand})` : '';
@@ -232,9 +234,8 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
 
       const client = new GoogleGenerativeAI(key);
       const model = client.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.1-flash-lite-preview',
         tools: [{ googleSearch: {} }],
-      }, {
         generationConfig: { responseMimeType: 'application/json' }
       });
 
@@ -244,11 +245,14 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
       logger.info(`Gemini Model Duration: ${modelDuration}ms for ${stationName}`);
       const response = result.response;
       let text = response.text().trim();
+      // Clean markdown if present
+      const cleanText = text.replace(/```json\n?|```/g, '').trim();
       let parsed = { prices: [], currency: currencyCode, attribution: "" };
       try {
-        parsed = JSON.parse(text);
+        parsed = JSON.parse(cleanText);
       } catch(e) {
-        throw new Error('Failed to parse Gemini JSON: ' + text.substring(0, 50));
+        logger.error('Gemini Raw Response:', text);
+        throw new Error('Failed to parse Gemini JSON: ' + (text.length > 100 ? text.substring(0, 100) + '...' : text));
       }
       
       const currency = parsed.currency || currencyCode;
@@ -281,16 +285,15 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
       if (!key) throw new Error('Missing Gemini/Firebase API Key');
 
       let desc = 'all major European countries';
-      let curr = 'EUR';
-      if (region === 'usa') { desc = 'all US states'; curr = 'USD'; }
-      if (region === 'canada') { desc = 'all Canadian provinces'; curr = 'CAD'; }
+      if (region === 'usa') { desc = 'all US states'; }
+      if (region === 'canada') { desc = 'all Canadian provinces'; }
 
-      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. Format: [{"region": "${region}", "name": "Country Name", "currency": "${curr}", "gasoline": 1.55, "diesel": 1.65, "lpg": null, "midGrade": null, "premium": null}]. Include 15 major locations.`;
+      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. IMPORTANT: Prices MUST be exact and strictly ONLY in the local currency of each specific location. Format: [{"region": "${region}", "name": "Country Name", "currency": "LOCAL_CURRENCY_CODE", "gasoline": 1.55, "diesel": 1.65, "lpg": null, "midGrade": null, "premium": null}]. Include 15 major locations.`;
 
       const client = new GoogleGenerativeAI(key);
+      logger.info(`Gemini Regional Prices start: ${region}`);
       const model = client.getGenerativeModel({
-        model: 'gemini-2.5-flash'
-      }, {
+        model: 'gemini-3.1-flash-lite-preview',
         generationConfig: { responseMimeType: 'application/json' }
       });
 
@@ -300,11 +303,13 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
       logger.info(`Gemini Regional Model Duration: ${modelDuration}ms`);
       const response = result.response;
       let text = response.text().trim();
+      const cleanText = text.replace(/```json\n?|```/g, '').trim();
       let parsed = [];
       try {
-        parsed = JSON.parse(text);
+        parsed = JSON.parse(cleanText);
       } catch(e) {
-        throw new Error('Failed to parse Gemini JSON: ' + text.substring(0, 50));
+        logger.error('Gemini Regional Raw Response:', text);
+        throw new Error('Failed to parse Gemini JSON: ' + (text.length > 100 ? text.substring(0, 100) + '...' : text));
       }
 
       res.json({ success: true, result: parsed });
