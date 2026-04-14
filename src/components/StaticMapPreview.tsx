@@ -38,7 +38,7 @@ export function StaticMapPreview({
     <View
       style={[
         styles.container,
-        { width: '100%', height },
+        { width: '100%', height, backgroundColor: isDark ? '#1a1a2e' : '#FFFFFF' },
       ]}
     >
       {!loaded && (
@@ -68,7 +68,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     overflow: 'hidden',
     marginBottom: Spacing.lg,
-    backgroundColor: '#1a1a2e',
   },
   loader: {
     ...StyleSheet.absoluteFillObject,

@@ -11,8 +11,8 @@ const TOMTOM_OPTS = {
 const GEMINI_OPTS = {
   region: 'us-central1',
   secrets: ['GOOGLE_AI_API_KEY'],
-  concurrency: 80,
-  memory: '512MiB'
+  concurrency: 40,
+  memory: '1GiB'
 };
 
 /**
@@ -228,31 +228,30 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
       if (!key) throw new Error('Missing Gemini/Firebase API Key');
 
       const brandHint = brand && brand !== stationName ? ` (brand: ${brand})` : '';
-      const prompt = `
-You are a fuel price data assistant. Use Google Search to find the CURRENT fuel prices at this specific gas station:
-Station: ${stationName}${brandHint}
-Address: ${address}
-Respond ONLY with JSON:
-{
-  "currency": "${currencyCode}",
-  "prices": [{ "fuelType": "Diesel", "price": 1.65 }],
-  "attribution": "source description or URL"
-}
-If not found return: {"currency":"${currencyCode}","prices":[],"attribution":""}
-`.trim();
+      const prompt = `Return JSON with current fuel prices for: ${stationName}, ${address}. Format: {"currency": "${currencyCode}", "prices": [{"fuelType": "Diesel", "price": 1.65}, {"fuelType": "Regular", "price": 1.55}], "attribution": "Google Search"}. If unknown: {"currency": "${currencyCode}", "prices": [], "attribution": ""}`;
 
       const client = new GoogleGenerativeAI(key);
       const model = client.getGenerativeModel({
         model: 'gemini-2.5-flash',
-        tools: [{ google_search: {} }],
+        tools: [{ googleSearch: {} }],
+      }, {
+        generationConfig: { responseMimeType: 'application/json' }
       });
 
+      const startModel = Date.now();
       const result = await model.generateContent(prompt);
+      const modelDuration = Date.now() - startModel;
+      logger.info(`Gemini Model Duration: ${modelDuration}ms for ${stationName}`);
       const response = result.response;
-      const text = response.text().trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-      const parsed = JSON.parse(text);
-      const currency = parsed.currency || currencyCode;
+      let text = response.text().trim();
+      let parsed = { prices: [], currency: currencyCode, attribution: "" };
+      try {
+        parsed = JSON.parse(text);
+      } catch(e) {
+        throw new Error('Failed to parse Gemini JSON: ' + text.substring(0, 50));
+      }
       
+      const currency = parsed.currency || currencyCode;
       const prices = Array.isArray(parsed.prices)
         ? parsed.prices
           .filter((p) => typeof p.fuelType === 'string' && typeof p.price === 'number' && p.price > 0)
@@ -264,12 +263,53 @@ If not found return: {"currency":"${currencyCode}","prices":[],"attribution":""}
           }))
         : [];
 
-      const groundingMeta = response.candidates?.[0]?.groundingMetadata;
-      const attribution = parsed.attribution || (groundingMeta?.webSearchQueries?.[0]) || '';
-      
-      res.json({ prices, currency, grounded: !!groundingMeta, attribution });
+      res.json({ prices, currency, grounded: true, attribution: parsed.attribution || "Gemini Search" });
     } catch (err) {
-      logger.error(err.message);
+      logger.error('Gemini Fuel Prices Error:', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+});
+
+exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
+  return withCors(req, res, async () => {
+    try {
+      if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const { region } = req.body || {};
+      const key = process.env.GOOGLE_AI_API_KEY || process.env.FIREBASE_API_KEY;
+      if (!key) throw new Error('Missing Gemini/Firebase API Key');
+
+      let desc = 'all major European countries';
+      let curr = 'EUR';
+      if (region === 'usa') { desc = 'all US states'; curr = 'USD'; }
+      if (region === 'canada') { desc = 'all Canadian provinces'; curr = 'CAD'; }
+
+      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. Format: [{"region": "${region}", "name": "Country Name", "currency": "${curr}", "gasoline": 1.55, "diesel": 1.65, "lpg": null, "midGrade": null, "premium": null}]. Include 15 major locations.`;
+
+      const client = new GoogleGenerativeAI(key);
+      const model = client.getGenerativeModel({
+        model: 'gemini-2.5-flash'
+      }, {
+        generationConfig: { responseMimeType: 'application/json' }
+      });
+
+      const startModel = Date.now();
+      const result = await model.generateContent(prompt);
+      const modelDuration = Date.now() - startModel;
+      logger.info(`Gemini Regional Model Duration: ${modelDuration}ms`);
+      const response = result.response;
+      let text = response.text().trim();
+      let parsed = [];
+      try {
+        parsed = JSON.parse(text);
+      } catch(e) {
+        throw new Error('Failed to parse Gemini JSON: ' + text.substring(0, 50));
+      }
+
+      res.json({ success: true, result: parsed });
+    } catch (err) {
+      logger.error('Gemini Regional Error:', err.message);
       res.status(500).json({ error: err.message });
     }
   });

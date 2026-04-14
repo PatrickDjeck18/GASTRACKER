@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useIsDark } from '../hooks/useIsDark';
-import { Colors, Spacing, Radii, FontSize } from '../constants/theme';
+import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import type { SearchSuggestion } from '../api/geocoding';
 
 interface Props {
@@ -47,8 +47,8 @@ export function SearchBar({
         style={[
           styles.inputRow,
           {
-            backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface,
-            borderColor: thm.border,
+            backgroundColor: thm.glass,
+            borderColor: thm.glassBorder,
           },
         ]}
       >
@@ -80,8 +80,8 @@ export function SearchBar({
           style={[
             styles.dropdown,
             {
-              backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface,
-              borderColor: thm.border,
+              backgroundColor: thm.glassElevated,
+              borderColor: thm.glassBorder,
             },
           ]}
         >
@@ -144,15 +144,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.lg,
+    paddingVertical: 10,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     gap: Spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    ...Shadows.lg,
   },
   input: {
     flex: 1,
@@ -160,15 +156,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   dropdown: {
-    marginTop: 4,
-    borderRadius: Radii.lg,
+    marginTop: 8,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Shadows.xl,
   },
   resultItem: {
     flexDirection: 'row',

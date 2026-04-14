@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FuelPrice } from '../types/station';
-import { logGeminiPriceRequest } from './firebase';
+import { logGeminiPriceRequest, getCachedApiResponse, saveApiResponseCache } from './firebase';
 import { callFirebaseFunction } from './firebaseFunctions';
 
 /* ─────────────────────────────────────────────────────
    Constants & Configuration
    ───────────────────────────────────────────────────── */
 const CACHE_PREFIX = '@gemini_price_cache_v2_';
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 /* ─────────────────────────────────────────────────────
    Caching utilities
    ───────────────────────────────────────────────────── */
@@ -119,11 +119,11 @@ export async function fetchFuelPricesWithGemini(
   const startTime = Date.now();
   const fallback: GeminiFuelPriceResult = { prices: [], currency: currencyCode, grounded: false };
 
-  // 1. Check cache first
+  // 1. Check local cache first
   const cacheKey = getCacheKey(stationName, address, currencyCode);
   const cached = await getCachedResult(cacheKey);
   if (cached) {
-    console.log('[Gemini] Returning cached result for', stationName);
+    console.log('[Gemini] Returning local cached result for', stationName);
     // Log cache hit (fire-and-forget)
     logGeminiPriceRequest(
       stationName,
@@ -132,9 +132,28 @@ export async function fetchFuelPricesWithGemini(
       cached.prices.length,
       Date.now() - startTime,
       cached.grounded,
-      'cached'
+      'local-cache'
     ).catch(() => {});
     return cached;
+  }
+
+  // 2. Check global Firestore cache
+  const globalCacheKey = `${stationName}_${address}_${currencyCode}`.toLowerCase().replace(/\s+/g, '_');
+  const globalCached = await getCachedApiResponse<GeminiFuelPriceResult>('gemini/fuel-prices', globalCacheKey);
+  if (globalCached) {
+    console.log('[Gemini] Returning global cached result for', stationName);
+    // Also save to local cache for next time
+    await setCachedResult(cacheKey, globalCached);
+    logGeminiPriceRequest(
+      stationName,
+      address,
+      currencyCode,
+      globalCached.prices.length,
+      Date.now() - startTime,
+      globalCached.grounded,
+      'global-cache'
+    ).catch(() => {});
+    return globalCached;
   }
 
   try {
@@ -145,8 +164,10 @@ export async function fetchFuelPricesWithGemini(
       currencyCode,
     });
 
-    // 4. Cache successful result
+    // 4. Cache successful result locally AND globally (6 hours)
     await setCachedResult(cacheKey, result);
+    const ttlMs = 6 * 60 * 60 * 1000; // 6 hours
+    await saveApiResponseCache('gemini/fuel-prices', globalCacheKey, result, ttlMs);
     console.log('[Gemini] Successfully fetched and cached prices for', stationName);
 
     // Log successful request (fire-and-forget)

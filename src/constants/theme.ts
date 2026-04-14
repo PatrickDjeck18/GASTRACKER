@@ -40,6 +40,9 @@ export const Colors = {
     card: '#131C2E',
     cardBorder: '#1E2D44',
     shimmer: '#1A2540',
+    glass: 'rgba(15, 21, 33, 0.75)',
+    glassElevated: 'rgba(25, 34, 54, 0.85)',
+    glassBorder: 'rgba(255, 255, 255, 0.08)',
   },
 
   light: {
@@ -59,6 +62,9 @@ export const Colors = {
     card: '#FFFFFF',
     cardBorder: '#E2E8F0',
     shimmer: '#E8EDF5',
+    glass: 'rgba(255, 255, 255, 0.75)',
+    glassElevated: 'rgba(248, 250, 255, 0.9)',
+    glassBorder: 'rgba(0, 0, 0, 0.05)',
   },
 
   price: {
@@ -149,6 +155,13 @@ export const Shadows = {
     shadowOpacity: 0.25,
     shadowRadius: 24,
     elevation: 12,
+  },
+  float: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.4,
+    shadowRadius: 32,
+    elevation: 20,
   },
   colored: (color: string) => ({
     shadowColor: color,

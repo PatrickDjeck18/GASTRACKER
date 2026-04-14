@@ -4,6 +4,7 @@ import {
   ScrollView, FlatList, Modal, Pressable,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Animated, { FadeInDown, FadeInRight, Layout } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +21,7 @@ import { StationDetailModal } from '../components/StationDetailModal';
 import { EmptyState }         from '../components/EmptyState';
 import { SearchBar }          from '../components/SearchBar';
 import { AdBanner }           from '../components/AdBanner';
+import { SkeletonCards }      from '../components/SkeletonCards';
 
 import { bestPrice, formatPrice, getPriceTier } from '../utils/price';
 import { formatDistance }     from '../utils/geo';
@@ -40,7 +42,10 @@ const RADIUS_OPTIONS = [
 
 /* ── glass helper ───────────────────────────────────── */
 const glass = (dark: boolean) =>
-  dark ? 'rgba(10,16,30,0.88)' : 'rgba(255,255,255,0.93)';
+  dark ? Colors.dark.glass : Colors.light.glass;
+const borderSubtle = (dark: boolean) =>
+  dark ? Colors.dark.glassBorder : Colors.light.glassBorder;
+
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SUB-COMPONENTS
@@ -50,9 +55,10 @@ const glass = (dark: boolean) =>
 function FuelChips({
   selected, onChange, isDark,
 }: { selected: string | null; onChange: (v: string | null) => void; isDark: boolean }) {
-  const border = isDark ? Colors.dark.border : Colors.light.border;
   const text   = isDark ? Colors.dark.text   : Colors.light.text;
   const muted  = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
+  const glassBg = glass(isDark);
+  const borderC = borderSubtle(isDark);
 
   return (
     <ScrollView
@@ -61,25 +67,26 @@ function FuelChips({
     >
       {/* All */}
       <TouchableOpacity
-        style={[fc.chip, { backgroundColor: !selected ? Colors.primary : glass(isDark), borderColor: !selected ? Colors.primary : border }]}
-        onPress={() => onChange(null)} activeOpacity={0.75}
+        style={[fc.chip, !selected ? fc.chipActive : { backgroundColor: glassBg, borderColor: borderC }]}
+        onPress={() => onChange(null)} activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="gas-station-outline" size={13} color={!selected ? '#FFF' : muted} />
+        <MaterialCommunityIcons name="gas-station-outline" size={14} color={!selected ? '#FFF' : muted} />
         <Text style={[fc.label, { color: !selected ? '#FFF' : text }]}>All</Text>
       </TouchableOpacity>
 
-      {FUEL_TYPES.map((ft) => {
+      {FUEL_TYPES.map((ft, idx) => {
         const on = selected === ft.tomtomMatch;
         return (
-          <TouchableOpacity
-            key={ft.key}
-            style={[fc.chip, { backgroundColor: on ? Colors.primary : glass(isDark), borderColor: on ? Colors.primary : border }]}
-            onPress={() => onChange(on ? null : ft.tomtomMatch)} activeOpacity={0.75}
-          >
-            <Text style={[fc.label, { color: on ? '#FFF' : text }]}>
-              {ft.tomtomMatch}
-            </Text>
-          </TouchableOpacity>
+          <Animated.View key={ft.key} entering={FadeInRight.delay(idx * 100).springify()}>
+            <TouchableOpacity
+              style={[fc.chip, on ? fc.chipActive : { backgroundColor: glassBg, borderColor: borderC }]}
+              onPress={() => onChange(on ? null : ft.tomtomMatch)} activeOpacity={0.8}
+            >
+              <Text style={[fc.label, { color: on ? '#FFF' : text }]}>
+                {ft.tomtomMatch}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         );
       })}
     </ScrollView>
@@ -87,16 +94,17 @@ function FuelChips({
 }
 const fc = StyleSheet.create({
   scroll: { flexGrow: 0 },
-  row:    { paddingHorizontal: Spacing.lg, paddingVertical: 5, gap: 8 },
-  chip:   { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: Radii.full, borderWidth: 1 },
-  label:  { fontSize: FontSize.sm, fontWeight: '700', letterSpacing: -0.2 },
+  row:    { paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 10 },
+  chip:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radii.full, borderWidth: 1, ...Shadows.sm },
+  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  label:  { fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.2 },
 });
 
 /* ── Price legend ───────────────────────────────────── */
 function PriceLegend({ isDark }: { isDark: boolean }) {
   const sec = isDark ? Colors.dark.textSecondary : Colors.light.textSecondary;
   return (
-    <View style={[pl.wrap, { backgroundColor: glass(isDark), borderColor: isDark ? Colors.dark.border : Colors.light.border }]}>
+    <View style={[pl.wrap, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}>
       {[
         { color: Colors.price.cheap,     label: 'Cheap' },
         { color: Colors.price.medium,    label: 'Fair'  },
@@ -111,35 +119,33 @@ function PriceLegend({ isDark }: { isDark: boolean }) {
   );
 }
 const pl = StyleSheet.create({
-  wrap: { borderRadius: Radii.lg, paddingVertical: 7, paddingHorizontal: 10, gap: 5, borderWidth: 1 },
-  row:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot:  { width: 8, height: 8, borderRadius: 4 },
-  txt:  { fontSize: 10, fontWeight: '600' },
+  wrap: { borderRadius: Radii.xl, paddingVertical: 10, paddingHorizontal: 12, gap: 8, borderWidth: 1, ...Shadows.sm },
+  row:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot:  { width: 10, height: 10, borderRadius: 5 },
+  txt:  { fontSize: 11, fontWeight: '700' },
 });
 
 /* ── Control button ─────────────────────────────────── */
 function CtrlBtn({
   icon, onPress, isDark, color,
 }: { icon: string; onPress: () => void; isDark: boolean; color?: string }) {
-  const border = isDark ? Colors.dark.border : Colors.light.border;
   return (
     <TouchableOpacity
-      style={[cb.btn, { backgroundColor: glass(isDark), borderColor: border }]}
-      onPress={onPress} activeOpacity={0.8}
+      style={cb.btn}
+      onPress={onPress} activeOpacity={0.7}
     >
       <MaterialCommunityIcons name={icon} size={22} color={color ?? Colors.primary} />
     </TouchableOpacity>
   );
 }
 const cb = StyleSheet.create({
-  btn: { width: 48, height: 48, borderRadius: Radii.full, justifyContent: 'center', alignItems: 'center', borderWidth: 1, ...Shadows.lg },
+  btn: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
 });
 
 /* ── Mini station peek card ─────────────────────────── */
 function PeekCard({
   station, allPrices, fuelFilter, isDark, onPress,
 }: { station: Station; allPrices: number[]; fuelFilter: string | null; isDark: boolean; onPress: () => void }) {
-  const border = isDark ? Colors.dark.border : Colors.light.border;
   const text   = isDark ? Colors.dark.text   : Colors.light.text;
   const muted  = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
   const best   = bestPrice(station, fuelFilter);
@@ -148,29 +154,37 @@ function PeekCard({
   const pColor: Record<string, string> = { cheap: Colors.price.cheap, medium: Colors.price.medium, expensive: Colors.price.expensive, unknown: Colors.price.unknown };
 
   return (
-    <TouchableOpacity
-      style={[pk.card, { backgroundColor: glass(isDark), borderColor: best ? pColor[tier] + '80' : border }]}
-      onPress={onPress} activeOpacity={0.8}
-    >
-      <View style={pk.iconWrap}>
-        <MaterialCommunityIcons name="gas-station" size={20} color={Colors.primary} />
-      </View>
-      <Text style={[pk.name, { color: text }]} numberOfLines={1}>{station.brand ?? station.name}</Text>
-      <Text style={[pk.price, { color: best ? pColor[tier] : muted }]}>{price}</Text>
-      <View style={pk.distRow}>
-        <MaterialCommunityIcons name="map-marker" size={10} color={muted} />
-        <Text style={[pk.dist, { color: muted }]}>{formatDistance(station.distance)}</Text>
-      </View>
-    </TouchableOpacity>
+    <Animated.View entering={FadeInDown.delay(200).springify()}>
+      <TouchableOpacity
+        style={[pk.card, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}
+        onPress={onPress} activeOpacity={0.9}
+      >
+        <View style={pk.topRow}>
+          <View style={[pk.iconWrap, { backgroundColor: Colors.primary + '15' }]}>
+            <MaterialCommunityIcons name="gas-station" size={22} color={Colors.primary} />
+          </View>
+          <View style={[pk.priceBadge, { backgroundColor: pColor[tier] + '15', borderColor: pColor[tier] + '30' }]}>
+            <Text style={[pk.price, { color: pColor[tier] }]}>{price}</Text>
+          </View>
+        </View>
+        <Text style={[pk.name, { color: text }]} numberOfLines={1}>{station.brand ?? station.name}</Text>
+        <View style={pk.distRow}>
+          <MaterialCommunityIcons name="near-me" size={14} color={muted} />
+          <Text style={[pk.dist, { color: muted }]}>{formatDistance(station.distance)}</Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 const pk = StyleSheet.create({
-  card:    { width: 130, borderRadius: Radii.xl, borderWidth: 1.5, padding: Spacing.md, marginRight: Spacing.md, ...Shadows.md },
-  iconWrap:{ width: 34, height: 34, borderRadius: Radii.md, backgroundColor: Colors.primaryMuted, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  name:    { fontSize: 12, fontWeight: '700', marginBottom: 2, letterSpacing: -0.2 },
-  price:   { fontSize: FontSize.lg, fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 },
-  distRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  dist:    { fontSize: 10, fontWeight: '500' },
+  card:    { width: 160, borderRadius: Radii.xxl, borderWidth: 1, padding: Spacing.lg, marginRight: Spacing.md, ...Shadows.lg },
+  topRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  iconWrap:{ width: 38, height: 38, borderRadius: Radii.lg, justifyContent: 'center', alignItems: 'center' },
+  priceBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.full, borderWidth: 1 },
+  price:   { fontSize: FontSize.md, fontWeight: '900', letterSpacing: -0.5 },
+  name:    { fontSize: FontSize.md, fontWeight: '800', marginBottom: 6, letterSpacing: -0.3 },
+  distRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dist:    { fontSize: 13, fontWeight: '600' },
 });
 
 /* ── Radius picker modal ────────────────────────────── */
@@ -178,7 +192,7 @@ function RadiusPicker({
   visible, current, onSelect, onClose, isDark,
 }: { visible: boolean; current: number; onSelect: (v: number) => void; onClose: () => void; isDark: boolean }) {
   const surf   = isDark ? Colors.dark.surface : Colors.light.surface;
-  const border = isDark ? Colors.dark.border  : Colors.light.border;
+  const border = borderSubtle(isDark);
   const text   = isDark ? Colors.dark.text    : Colors.light.text;
   const elev   = isDark ? Colors.dark.surfaceElevated : Colors.light.surfaceElevated;
 
@@ -186,7 +200,7 @@ function RadiusPicker({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={rm.backdrop} onPress={onClose} />
       <View style={[rm.sheet, { backgroundColor: surf, borderColor: border }]}>
-        <View style={[rm.handle, { backgroundColor: border }]} />
+        <View style={[rm.handle, { backgroundColor: isDark ? '#333' : '#CCC' }]} />
         <Text style={[rm.title, { color: text }]}>Search Radius</Text>
         <View style={rm.grid}>
           {RADIUS_OPTIONS.map((o) => {
@@ -207,12 +221,12 @@ function RadiusPicker({
   );
 }
 const rm = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet:    { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: Radii.xxl, borderTopRightRadius: Radii.xxl, borderTopWidth: 1, padding: Spacing.xxl, paddingBottom: Spacing.huge, alignItems: 'center' },
-  handle:   { width: 40, height: 4, borderRadius: 2, marginBottom: Spacing.xl },
-  title:    { fontSize: FontSize.xl, fontWeight: '800', letterSpacing: -0.4, marginBottom: Spacing.xl, alignSelf: 'flex-start' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  sheet:    { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: Radii.xxl, borderTopRightRadius: Radii.xxl, padding: Spacing.xxl, paddingBottom: Spacing.huge, alignItems: 'center', ...Shadows.xl },
+  handle:   { width: 48, height: 5, borderRadius: 3, marginBottom: Spacing.xl },
+  title:    { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.5, marginBottom: Spacing.xl, alignSelf: 'flex-start' },
   grid:     { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md, alignSelf: 'flex-start' },
-  opt:      { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg, borderRadius: Radii.full, borderWidth: 1 },
+  opt:      { paddingHorizontal: Spacing.xxl, paddingVertical: Spacing.lg, borderRadius: Radii.full, borderWidth: 1, ...Shadows.sm },
   optTxt:   { fontSize: FontSize.md, fontWeight: '700' },
 });
 
@@ -366,13 +380,23 @@ export default function HomeScreen() {
         <View style={[g.topStack, { top: insets.top + Spacing.sm }]}>
           {/* Location badge */}
           {locationName ? (
-            <View style={[g.locBadge, { backgroundColor: glass(isDark), borderColor: thm.border }]}>
-              <MaterialCommunityIcons name="map-marker" size={16} color={Colors.primary} />
-              <Text style={[g.locText, { color: thm.text }]} numberOfLines={1}>{locationName}</Text>
-              <TouchableOpacity onPress={() => setSearchActive(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <MaterialCommunityIcons name="magnify" size={18} color={thm.textMuted} />
+            <Animated.View 
+              entering={FadeInDown.springify()}
+              style={[g.locBadge, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}
+            >
+              <MaterialCommunityIcons name="map-marker-outline" size={20} color={Colors.primary} />
+              <View style={g.locInfo}>
+                <Text style={[g.locText, { color: thm.text }]} numberOfLines={1}>{locationName}</Text>
+                <Text style={[g.locSub, { color: thm.textMuted }]}>Current Location</Text>
+              </View>
+              <TouchableOpacity 
+                style={[g.searchBtn, { backgroundColor: thm.surfaceElevated }]} 
+                onPress={() => setSearchActive(true)} 
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              >
+                <MaterialCommunityIcons name="magnify" size={20} color={thm.text} />
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           ) : null}
 
           {/* Fuel filter chips */}
@@ -388,31 +412,37 @@ export default function HomeScreen() {
       )}
 
       {/* ── RIGHT: zoom + recenter controls ─────────── */}
-      <View style={[g.rightControls, { bottom: ctrlBottom }]}>
+      <View style={[g.rightControls, { bottom: ctrlBottom, backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}>
         <CtrlBtn icon="plus"            onPress={() => mapRef.current?.zoomIn()}  isDark={isDark} />
+        <View style={[g.separator, { backgroundColor: borderSubtle(isDark) }]} />
         <CtrlBtn icon="minus"           onPress={() => mapRef.current?.zoomOut()} isDark={isDark} />
-        <CtrlBtn icon="crosshairs-gps"  onPress={handleRecenter}                   isDark={isDark} color={mapMoved ? thm.textMuted : Colors.primary} />
+        <View style={[g.separator, { backgroundColor: borderSubtle(isDark) }]} />
+        <CtrlBtn icon="crosshairs-gps"  onPress={handleRecenter}                   isDark={isDark} color={mapMoved ? Colors.primary : thm.textMuted} />
       </View>
 
       {/* ── BOTTOM-LEFT: station count badge ─────────── */}
       {!isLoading && stations.length > 0 && !searchActive && (
         <TouchableOpacity
-          style={[g.countBadge, { backgroundColor: glass(isDark), borderColor: thm.border, bottom: ctrlBottom }]}
+          style={[g.countBadge, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark), bottom: ctrlBottom }]}
           onPress={() => setShowRadiusPicker(true)} activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="gas-station" size={15} color={Colors.primary} />
-          <Text style={[g.countTxt, { color: thm.text }]}>{stations.length}</Text>
-          {minPrice != null && (
-            <Text style={[g.countSub, { color: thm.textSecondary }]}>
-              from {formatPrice(minPrice)}
-            </Text>
-          )}
-          <MaterialCommunityIcons name="chevron-up" size={14} color={thm.textMuted} />
+          <View style={g.countIconWrap}>
+            <MaterialCommunityIcons name="gas-station" size={16} color="#FFF" />
+          </View>
+          <View style={g.countCol}>
+            <Text style={[g.countTxt, { color: thm.text }]}>{stations.length} <Text style={{fontWeight: '400', fontSize: FontSize.xs}}>Stations</Text></Text>
+            {minPrice != null && (
+              <Text style={[g.countSub, { color: Colors.price.cheap }]}>
+                from {formatPrice(minPrice)}
+              </Text>
+            )}
+          </View>
+          <MaterialCommunityIcons name="tune-vertical" size={18} color={thm.textMuted} style={{marginLeft: 8}} />
         </TouchableOpacity>
       )}
 
-      {/* Loading spinner */}
-      {isLoading && (
+      {/* Loading spinner (top) */}
+      {isLoading && !locationName && (
         <View style={[g.spinner, { top: insets.top + 90 }]}>
           <ActivityIndicator size="small" color={Colors.primary} />
         </View>
@@ -420,7 +450,7 @@ export default function HomeScreen() {
 
       {/* ── BOTTOM PEEK: cheapest stations strip ─────── */}
       {showPeek && (
-        <View style={[g.peek, { bottom: peekBottom, backgroundColor: isDark ? 'rgba(7,11,20,0.0)' : 'rgba(240,244,255,0.0)' }]}>
+        <View style={[g.peek, { bottom: peekBottom }]}>
           <FlatList
             data={topStations}
             horizontal
@@ -437,6 +467,13 @@ export default function HomeScreen() {
               />
             )}
           />
+        </View>
+      )}
+
+      {/* ── SKELETON LOADING ─── */}
+      {!showPeek && isLoading && (
+        <View style={[g.peek, { bottom: peekBottom }]}>
+          <SkeletonCards count={3} />
         </View>
       )}
 
@@ -486,15 +523,20 @@ const g = StyleSheet.create({
   locBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.full,
+    gap: 12,
+    paddingRight: Spacing.sm,
+    paddingLeft: Spacing.xl,
+    paddingVertical: 8,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    maxWidth: '85%',
+    minWidth: '70%',
+    maxWidth: '90%',
     ...Shadows.lg,
   },
-  locText: { fontSize: FontSize.md, fontWeight: '700', flexShrink: 1, letterSpacing: -0.2 },
+  locInfo: { flex: 1, justifyContent: 'center' },
+  locText: { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.5 },
+  locSub:  { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', opacity: 0.6 },
+  searchBtn: { width: 38, height: 38, borderRadius: Radii.lg, justifyContent: 'center', alignItems: 'center' },
 
   /* price legend */
   legendWrap: { position: 'absolute', right: Spacing.lg },
@@ -503,8 +545,12 @@ const g = StyleSheet.create({
   rightControls: {
     position: 'absolute',
     right: Spacing.lg,
-    gap: Spacing.sm,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadows.lg,
   },
+  separator: { height: 1.5, width: '60%', alignSelf: 'center' },
 
   /* station count badge */
   countBadge: {
@@ -512,15 +558,18 @@ const g = StyleSheet.create({
     left: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
+    gap: 8,
+    paddingRight: Spacing.lg,
+    paddingLeft: Spacing.sm,
+    paddingVertical: 6,
     borderRadius: Radii.full,
     borderWidth: 1,
     ...Shadows.lg,
   },
-  countTxt: { fontSize: FontSize.md, fontWeight: '800' },
-  countSub: { fontSize: FontSize.xs, fontWeight: '600' },
+  countIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+  countCol: { justifyContent: 'center' },
+  countTxt: { fontSize: FontSize.sm, fontWeight: '800' },
+  countSub: { fontSize: FontSize.xs, fontWeight: '700' },
 
   /* loading spinner */
   spinner: {

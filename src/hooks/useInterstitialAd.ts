@@ -20,7 +20,7 @@ const INTERSTITIAL_UNIT_ID = __DEV__
     })!;
 
 /** Minimum interval (ms) between interstitial ads */
-const AD_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+const AD_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
 
 /** Number of "actions" before an ad is shown */
 const ACTIONS_BEFORE_AD = 1;
@@ -88,7 +88,7 @@ export function useInterstitialAd() {
   }, []);
 
   /**
-   * Automatic background timer to check for ad availability every 2 minutes.
+   * Automatic background timer to check for ad availability every 3 minutes.
    */
   useEffect(() => {
     const interval = setInterval(() => {

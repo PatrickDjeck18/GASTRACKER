@@ -10,8 +10,8 @@ export function useGasPrices(region: GasPriceRegion) {
   return useQuery<RegionalFuelPrice[], Error>({
     queryKey: ['gasPrices', region],
     queryFn: () => fetchRegionalPrices(region),
-    staleTime: 10 * 60 * 1000,  // 10 minutes
-    gcTime: 30 * 60 * 1000,      // 30 minutes
+    staleTime: 12 * 60 * 60 * 1000,  // 12 hours
+    gcTime: 24 * 60 * 60 * 1000,      // 24 hours
     retry: 2,
   });
 }

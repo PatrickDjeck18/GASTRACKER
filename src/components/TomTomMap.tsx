@@ -40,7 +40,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
   }));
 
   /* ── initial HTML ──────────────────────────────────── */
-  const bg = isDark ? '#070B14' : '#F0F4FF';
+  const bg = isDark ? '#070B14' : '#FFFFFF';
   const style = isDark ? 'basic_night' : 'basic_main';
 
   // Memoize HTML source to prevent reloading WebView abruptly on every stations/filter prop change
@@ -70,12 +70,13 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
       letter-spacing:-.3px;
       border:1.5px solid rgba(255,255,255,.3);
       user-select:none;
-      transition:transform .2s cubic-bezier(.175,.885,.32,1.275),box-shadow .2s;
+      transition:background-color .2s, box-shadow .2s;
       min-width:40px;
       text-align:center;
     }
     .tt-marker.selected{
-      transform:scale(1.35)!important;
+      font-size: 14px!important;
+      padding: 7px 12px!important;
       z-index:1000!important;
       box-shadow:0 0 0 3px rgba(255,255,255,.9),0 6px 20px rgba(0,0,0,.4)!important;
     }
@@ -206,9 +207,13 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
           } else {
             var mel=mk.getElement();
             if(mel) {
-              mel.style.backgroundColor=tc;
-              mel.innerText=lbl;
-              isSel?mel.classList.add('selected'):mel.classList.remove('selected');
+              // Convert hex/named color to rgb if needed or just blindly assign? 
+              // Better: only assign if string is different to prevent reflow jumping.
+              if (mel.innerText !== lbl) { mel.innerText = lbl; }
+              // CSS applies tc directly, which might be rgb(...) when read back.
+              // We'll just enforce the property directly. The engine optimizes it if identical.
+              mel.style.backgroundColor = tc;
+              isSel ? mel.classList.add('selected') : mel.classList.remove('selected');
             }
           }
         } catch(e) {
@@ -322,9 +327,9 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
           <Text style={s.errorHint}>Check your internet connection and API key.</Text>
         </View>
       ) : !mapReady ? (
-        <View style={s.loadingContainer}>
+        <View style={[s.loadingContainer, { backgroundColor: bg }]}>
           <ActivityIndicator size="large" color="#3B82F6" />
-          <Text style={s.loadingText}>Loading interactive map...</Text>
+          <Text style={[s.loadingText, { color: isDark ? '#fff' : '#000' }]}>Loading interactive map...</Text>
         </View>
       ) : null}
       <WebView
@@ -391,11 +396,9 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#070B14',
     zIndex: 5,
   },
   loadingText: {
-    color: '#fff',
     fontSize: 16,
     marginTop: 16,
     fontWeight: '600',

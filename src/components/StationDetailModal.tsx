@@ -13,13 +13,11 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useIsDark } from '../hooks/useIsDark';
-import { useRouteInfo } from '../hooks/useRouteInfo';
 import { useTrafficFlow } from '../hooks/useTrafficFlow';
 import { useEnrichStation } from '../hooks/useStations';
 import { useInterstitialAd } from '../hooks/useInterstitialAd';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { PriceTag } from './PriceTag';
-import { RouteInfoCard } from './RouteInfoCard';
 import { TrafficBadge } from './TrafficBadge';
 import { StaticMapPreview } from './StaticMapPreview';
 import { formatDistance } from '../utils/geo';
@@ -88,14 +86,6 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
     });
   };
 
-  /* ── Route info (Routing API) ─── */
-  const { data: routeInfo, isLoading: routeLoading } = useRouteInfo({
-    originLat: userCoords?.latitude,
-    originLon: userCoords?.longitude,
-    destLat: station?.coordinates.latitude,
-    destLon: station?.coordinates.longitude,
-    enabled: !!station && !!userCoords,
-  });
 
   /* ── Traffic flow (Traffic API) ─── */
   const { data: trafficInfo } = useTrafficFlow({
@@ -182,8 +172,6 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
             <TrafficBadge traffic={trafficInfo} compact style={{ flexShrink: 0, paddingHorizontal: Spacing.md }} />
           </View>
 
-          {/* Route info card (Routing API) */}
-          <RouteInfoCard route={routeInfo} isLoading={routeLoading} />
 
           {/* Fuel prices */}
           <View style={[styles.priceCard, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
