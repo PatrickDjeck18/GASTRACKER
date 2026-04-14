@@ -4,8 +4,10 @@
         "tagline": "Datenschutzfreundliche Kraftstoffpreise"
     },
     "tabs": {
+        "home": "Start",
         "map": "Karte",
         "list": "Tankstellen",
+        "prices": "Preise",
         "savings": "Ersparnis",
         "settings": "Einstellungen"
     },

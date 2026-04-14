@@ -4,8 +4,10 @@
         "tagline": "Privacy-first fuel prices"
     },
     "tabs": {
+        "home": "Home",
         "map": "Map",
         "list": "Stations",
+        "prices": "Prices",
         "savings": "Savings",
         "settings": "Settings"
     },

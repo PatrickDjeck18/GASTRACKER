@@ -9,8 +9,10 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { useIsDark } from '../hooks/useIsDark';
 import { Colors, Radii } from '../constants/theme';
 
+import DashboardScreen from '../screens/DashboardScreen';
 import HomeScreen from '../screens/HomeScreen';
 import StationListScreen from '../screens/StationListScreen';
+import GasPricesScreen from '../screens/GasPricesScreen';
 import SavingsScreen from '../screens/SavingsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
@@ -88,6 +90,17 @@ export function RootNavigator() {
         }}
       >
         <Tab.Screen
+          name="DashboardTab"
+          component={DashboardScreen}
+          options={{
+            title: t('tabs.home') || 'Home',
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="home-variant" color={color} size={size + 2} />
+            ),
+          }}
+        />
+        <Tab.Screen
           name="MapTab"
           component={HomeScreen}
           options={{
@@ -106,6 +119,17 @@ export function RootNavigator() {
             headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name="format-list-bulleted" color={color} size={size + 2} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="PricesTab"
+          component={GasPricesScreen}
+          options={{
+            title: t('tabs.prices'),
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="chart-line" color={color} size={size + 2} />
             ),
           }}
         />

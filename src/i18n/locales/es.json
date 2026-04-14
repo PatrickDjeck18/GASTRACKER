@@ -4,8 +4,10 @@
         "tagline": "Precios de combustible privados"
     },
     "tabs": {
+        "home": "Inicio",
         "map": "Mapa",
         "list": "Estaciones",
+        "prices": "Precios",
         "savings": "Ahorros",
         "settings": "Ajustes"
     },

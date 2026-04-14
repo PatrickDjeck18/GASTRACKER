@@ -179,6 +179,10 @@ export default function SavingsScreen() {
   const searchRadius  = useAppStore((s) => s.searchRadius);
   const savings       = useAppStore((s) => s.savings);
   const setSavings    = useAppStore((s) => s.setSavings);
+  const savedCalculations      = useAppStore((s) => s.savedCalculations);
+  const addSavedCalculation    = useAppStore((s) => s.addSavedCalculation);
+  const removeSavedCalculation = useAppStore((s) => s.removeSavedCalculation);
+
   const { data: stations = [] } = useStations({
     lat: coords?.latitude, lon: coords?.longitude,
     radius: searchRadius, enabled: !!coords,
@@ -204,6 +208,7 @@ export default function SavingsScreen() {
 
   /* ── form state (synced with store) ─── */
   const [result,     setResult]     = useState<Result | null>(null);
+  const [hasSavedCurrent, setHasSavedCurrent] = useState(false);
   const resultAnim = useRef(new Animated.Value(0)).current;
 
   // Auto-suggest usual price if empty
@@ -243,6 +248,7 @@ export default function SavingsScreen() {
     const monthly    = net * 4;
 
     setResult({ fillSaving, tripCost, net, monthly, worthIt: net > 0, currency });
+    setHasSavedCurrent(false);
 
     resultAnim.setValue(0);
     Animated.spring(resultAnim, { 
@@ -252,6 +258,20 @@ export default function SavingsScreen() {
       tension: 40 
     }).start();
   }, [savings, cheapestBest, cheapest, currency, resultAnim, t]);
+
+  const handleSaveCalculation = useCallback(() => {
+    if (!result) return;
+    addSavedCalculation({
+      fillSaving: result.fillSaving,
+      tripCost: result.tripCost,
+      net: result.net,
+      currency: result.currency,
+    });
+    setHasSavedCurrent(true);
+    Alert.alert('Saved!', 'This calculation has been added to your history.');
+  }, [result, addSavedCalculation]);
+
+  const lifetimeNet = useMemo(() => savedCalculations.reduce((acc, c) => acc + c.net, 0), [savedCalculations]);
 
   /* ── render ─── */
   return (
@@ -421,14 +441,69 @@ export default function SavingsScreen() {
             </View>
 
             {/* Tip */}
-            <View style={[g.tip, { backgroundColor: Colors.primaryMuted, borderColor: Colors.primaryGlow }]}>
+            <View style={[g.tip, { backgroundColor: Colors.primaryMuted, borderColor: Colors.primaryGlow, marginBottom: Spacing.md }]}>
               <MaterialCommunityIcons name="lightbulb-outline" size={14} color={Colors.primary} />
               <Text style={[g.tipTxt, { color: Colors.primary }]}>
                 {t('savings.tipMonthly')}
               </Text>
             </View>
+
+            {/* Save Button */}
+            {!hasSavedCurrent && (
+              <TouchableOpacity
+                style={[g.calcBtn, { backgroundColor: isDark ? Colors.dark.surfaceHighlight : Colors.light.surfaceElevated, borderWidth: 1, borderColor: Colors.primary, marginTop: 0 }]}
+                onPress={handleSaveCalculation}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="content-save-outline" size={20} color={Colors.primary} />
+                <Text style={[g.calcBtnTxt, { color: Colors.primary }]}>Save to History</Text>
+              </TouchableOpacity>
+            )}
+            {hasSavedCurrent && (
+              <View style={[g.calcBtn, { backgroundColor: Colors.price.cheapBg, marginTop: 0 }]}>
+                 <MaterialCommunityIcons name="check" size={20} color={Colors.price.cheap} />
+                 <Text style={[g.calcBtnTxt, { color: Colors.price.cheap }]}>Saved Locally</Text>
+              </View>
+            )}
           </Animated.View>
         )}
+
+        {/* ── SAVINGS HISTORY ─── */}
+        {savedCalculations.length > 0 && (
+          <View style={[g.card, { backgroundColor: thm.card, borderColor: thm.cardBorder }]}>
+            <View style={g.sectionHead}>
+              <MaterialCommunityIcons name="history" size={18} color={Colors.primary} />
+              <Text style={[g.sectionTitle, { color: thm.text }]}>Lifetime Savings</Text>
+              <Text style={[g.sectionMeta, { color: Colors.price.cheap, fontSize: FontSize.md, fontWeight: '800' }]}>
+                {lifetimeNet >= 0 ? '+' : ''}{sym}{lifetimeNet.toFixed(2)}
+              </Text>
+            </View>
+            
+            <View style={{ gap: Spacing.sm }}>
+              {savedCalculations.slice(0, 5).map((calc) => (
+                <View key={calc.id} style={[historyStyle.row, { borderColor: thm.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[historyStyle.date, { color: thm.textSecondary }]}>
+                      {new Date(calc.date).toLocaleDateString()}
+                    </Text>
+                    <Text style={[historyStyle.details, { color: thm.textMuted }]}>
+                      Fill-up: +{sym}{calc.fillSaving.toFixed(2)} · Detour: -{sym}{calc.tripCost.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', marginLeft: Spacing.md }}>
+                    <Text style={[historyStyle.net, { color: calc.net >= 0 ? Colors.price.cheap : Colors.price.expensive }]}>
+                      {calc.net >= 0 ? '+' : ''}{sym}{calc.net.toFixed(2)}
+                    </Text>
+                    <TouchableOpacity onPress={() => removeSavedCalculation(calc.id)} style={{ padding: 4 }}>
+                      <Text style={{ fontSize: 10, color: Colors.price.expensive }}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -483,4 +558,29 @@ const g = StyleSheet.create({
   /* tip */
   tip:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.lg, padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   tipTxt: { flex: 1, fontSize: FontSize.xs, fontWeight: '600', lineHeight: 16 },
+});
+
+const historyStyle = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm + 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  date: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  details: {
+    fontSize: FontSize.xs,
+    fontWeight: '500',
+  },
+  net: {
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 2,
+  },
 });

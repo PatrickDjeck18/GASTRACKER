@@ -18,7 +18,8 @@
                 "TOMTOM_API_KEY": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
                 "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~1091748711",
                 "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2973770046",
-                "GOOGLE_AI_API_KEY": "AIzaSyChP_EFZPVTq8StOHNuoG2YgWFLf6bVD04"
+                "GOOGLE_AI_API_KEY": "AIzaSyChP_EFZPVTq8StOHNuoG2YgWFLf6bVD04",
+                "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc"
             }
         },
         "preview": {
@@ -44,7 +45,8 @@
                 "FIREBASE_MESSAGING_SENDER_ID": "64993832802",
                 "FIREBASE_APP_ID": "1:64993832802:web:bec8a2c37d8dc18a7e463b",
                 "FIREBASE_MEASUREMENT_ID": "G-EP5QNBNPWZ",
-                "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net"
+                "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net",
+                "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc"
             }
         },
         "production": {
@@ -70,7 +72,8 @@
                 "FIREBASE_MESSAGING_SENDER_ID": "64993832802",
                 "FIREBASE_APP_ID": "1:64993832802:web:bec8a2c37d8dc18a7e463b",
                 "FIREBASE_MEASUREMENT_ID": "G-EP5QNBNPWZ",
-                "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net"
+                "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net",
+                "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc"
             }
         }
     },

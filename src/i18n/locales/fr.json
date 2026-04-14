@@ -4,8 +4,10 @@
         "tagline": "Prix de carburant privés"
     },
     "tabs": {
+        "home": "Accueil",
         "map": "Carte",
         "list": "Stations",
+        "prices": "Prix",
         "savings": "Économies",
         "settings": "Réglages"
     },
