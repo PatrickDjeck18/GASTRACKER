@@ -145,12 +145,12 @@ const cb = StyleSheet.create({
 
 /* ── Mini station peek card ─────────────────────────── */
 function PeekCard({
-  station, allPrices, fuelFilter, isDark, onPress,
-}: { station: Station; allPrices: number[]; fuelFilter: string | null; isDark: boolean; onPress: () => void }) {
+  station, allPrices, fuelFilter, isDark, localCurrency, onPress,
+}: { station: Station; allPrices: number[]; fuelFilter: string | null; isDark: boolean; localCurrency: string; onPress: () => void }) {
   const text   = isDark ? Colors.dark.text   : Colors.light.text;
   const muted  = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
   const best   = bestPrice(station, fuelFilter);
-  const price  = best ? formatPrice(best.price, best.currency) : '—';
+  const price  = best ? formatPrice(best.price, localCurrency) : '—';
   const tier   = best ? getPriceTier(best.price, allPrices) : 'unknown';
   const pColor: Record<string, string> = { cheap: Colors.price.cheap, medium: Colors.price.medium, expensive: Colors.price.expensive, unknown: Colors.price.unknown };
 
@@ -361,6 +361,7 @@ export default function HomeScreen() {
         stations={stations}
         allPrices={allPrices}
         fuelFilter={fuelFilter}
+        localCurrency={localCurrency}
         onSelectStation={handleSelect}
         selectedStationId={selectedId}
         isDark={isDark}
@@ -465,6 +466,7 @@ export default function HomeScreen() {
                 allPrices={allPrices}
                 fuelFilter={fuelFilter}
                 isDark={isDark}
+                localCurrency={localCurrency}
                 onPress={() => handleSelect(item.id)}
               />
             )}

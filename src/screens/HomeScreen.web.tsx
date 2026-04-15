@@ -19,11 +19,13 @@ import { AdBanner } from '../components/AdBanner';
 import { bestPrice, getPriceTier } from '../utils/price';
 import { Colors, Spacing, Radii, FontSize } from '../constants/theme';
 import { useInterstitialAd } from '../hooks/useInterstitialAd';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const isDark = useIsDark();
   const thm = isDark ? Colors.dark : Colors.light;
+  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
 
   const { coords, loading: locLoading, error: locError, refresh: reLocate } = useLocation();
 
@@ -139,6 +141,7 @@ export default function HomeScreen() {
         stations={stations}
         allPrices={allPrices}
         fuelFilter={fuelFilter}
+        localCurrency={localCurrency}
         onSelectStation={handleStationSelect}
         selectedStationId={selectedId ?? undefined}
         isDark={isDark}

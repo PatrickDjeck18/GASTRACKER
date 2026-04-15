@@ -14,6 +14,7 @@ import { useStations }    from '../hooks/useStations';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { bestPrice, formatPrice, getPriceTier, currencySymbol } from '../utils/price';
 import { formatDistance } from '../utils/geo';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station }   from '../types/station';
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -82,10 +83,10 @@ const f = StyleSheet.create({
    STATION ROW — price bar comparison
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function StationRow({
-  station, rank, allPrices, fuelFilter, isDark, isCheapest,
+  station, rank, allPrices, fuelFilter, isDark, localCurrency, isCheapest,
 }: {
   station: Station; rank: number; allPrices: number[];
-  fuelFilter: string | null; isDark: boolean; isCheapest: boolean;
+  fuelFilter: string | null; isDark: boolean; localCurrency: string; isCheapest: boolean;
 }) {
   const thm  = isDark ? Colors.dark : Colors.light;
   const best = bestPrice(station, fuelFilter);
@@ -121,7 +122,7 @@ function StationRow({
         </View>
       </View>
       <View style={sr.right}>
-        <Text style={[sr.price, { color: col }]}>{formatPrice(best.price, best.currency)}</Text>
+        <Text style={[sr.price, { color: col }]}>{formatPrice(best.price, localCurrency)}</Text>
         <Text style={[sr.dist, { color: thm.textMuted }]}>{formatDistance(station.distance)}</Text>
       </View>
     </View>
@@ -172,6 +173,7 @@ export default function SavingsScreen() {
   const thm     = isDark ? Colors.dark : Colors.light;
   const { t }   = useTranslation();
   const insets  = useSafeAreaInsets();
+  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
 
   /* ── store data ─── */
   const { coords }    = useLocation();
@@ -198,7 +200,7 @@ export default function SavingsScreen() {
 
   const cheapest = rankedStations[0] ?? null;
   const cheapestBest = cheapest ? bestPrice(cheapest, fuelFilter) : null;
-  const currency = cheapestBest?.currency ?? 'EUR';
+  const currency = localCurrency;
   const sym      = currencySymbol(currency);
 
   const allPrices = useMemo(
@@ -340,6 +342,7 @@ export default function SavingsScreen() {
                   allPrices={allPrices}
                   fuelFilter={fuelFilter}
                   isDark={isDark}
+                  localCurrency={localCurrency}
                   isCheapest={i === 0}
                 />
               ))}

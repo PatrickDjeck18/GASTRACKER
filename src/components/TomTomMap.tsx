@@ -14,6 +14,7 @@ interface Props {
   stations: Station[];
   allPrices: number[];
   fuelFilter: string | null;
+  localCurrency?: string;
   onSelectStation: (id: string) => void;
   selectedStationId?: string | null;
   isDark: boolean;
@@ -26,7 +27,7 @@ const TT_JS = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-
 const TT_CSS = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css';
 
 export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner(
-  { stations, allPrices, fuelFilter, onSelectStation, selectedStationId, isDark, userCoords, autoCenter = true, onMapMoved },
+  { stations, allPrices, fuelFilter, localCurrency = 'USD', onSelectStation, selectedStationId, isDark, userCoords, autoCenter = true, onMapMoved },
   ref,
 ) {
   const wvRef = useRef<WebView>(null);
@@ -91,7 +92,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
 <div id="map"></div>
 <script>
   var map, markers=new Map(), userMark=null;
-  var gStations=[], gFilter=null, gPrices=[], gSelId=null;
+  var gStations=[], gFilter=null, gPrices=[], gSelId=null, gCurrency='${localCurrency}';
   var mapLoaded=false;
   var pendingStationUpdate=null;
 
@@ -187,7 +188,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
         try {
           var fps=s.fuelPrices&&s.fuelPrices.length>0;
           var fp=fps?(gFilter?s.fuelPrices.find(function(p){return p.fuelType===gFilter;})||s.fuelPrices[0]:s.fuelPrices[0]):null;
-          var price=fp?fp.price:0, cur=fp?fp.currency:'USD';
+          var price=fp?fp.price:0, cur=gCurrency||'USD';
           var tc=tierCol(tier(price,gPrices));
           var lbl=price>0?(sym(cur)+price.toFixed(2)):'⛽';
           var isSel=s.id===gSelId;
@@ -251,6 +252,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
       gFilter=d.fuelFilter;
       gPrices=d.allPrices || [];
       gSelId=d.selectedStationId;
+      gCurrency=d.localCurrency || gCurrency;
       updateMarkers();
     }
     else if(d.type==='userLoc'){ updateUserDot(d.lat,d.lon); }
@@ -264,17 +266,17 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
 </script>
 </body>
 </html>`;
-  }, [isDark, style, bg]); // Re-render complete HTML only if theme changes
+  }, [isDark, style, bg, localCurrency]); // Re-render complete HTML only if theme changes
 
   /* ── inject station updates ───────────────────────── */
   useEffect(() => {
-    const payload = { type: 'update', stations, fuelFilter, allPrices, selectedStationId };
+    const payload = { type: 'update', stations, fuelFilter, allPrices, selectedStationId, localCurrency };
     if (!wvRef.current || !mapReady) {
       pendingUpdate.current = payload;
       return;
     }
     wvRef.current.injectJavaScript(`if(window.updateMap){window.updateMap(${JSON.stringify(payload)});}true;`);
-  }, [mapReady, stations, fuelFilter, allPrices, selectedStationId]);
+  }, [mapReady, stations, fuelFilter, allPrices, selectedStationId, localCurrency]);
 
   /* ── inject user-location updates ────────────────── */
   useEffect(() => {

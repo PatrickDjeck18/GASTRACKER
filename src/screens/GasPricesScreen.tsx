@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
 import { useGasPrices } from '../hooks/useGasPrices';
 import { useIsDark } from '../hooks/useIsDark';
@@ -64,8 +65,18 @@ function getFlag(name: string, region: GasPriceRegion): string {
 /* ── Helpers ───────────────────────────────────────── */
 function formatCurrency(val: number | null, currency: string): string {
   if (val == null) return '—';
-  const sym = currency === 'USD' ? '$' : currency === 'CAD' ? 'CA$' : '€';
-  return `${sym}${val.toFixed(3)}`;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3,
+    }).format(val);
+  } catch (e) {
+    // Fallback if Intl fails or currency code is invalid
+    const sym = currency === 'USD' ? '$' : currency === 'CAD' ? 'CA$' : currency === 'EUR' ? '€' : currency;
+    return `${sym}${val.toFixed(3)}`;
+  }
 }
 
 function getPriceTierColor(val: number | null, allPrices: number[]): string {
@@ -165,6 +176,7 @@ export default function GasPricesScreen() {
   const [search, setSearch]     = useState('');
 
   const { data: prices = [], isLoading, refetch, isRefetching } = useGasPrices(region);
+  const userCurrency = getLocalCurrencyCode();
 
   /* reset fuel tab when switching regions */
   const handleRegionChange = useCallback((r: GasPriceRegion) => {
@@ -312,7 +324,7 @@ export default function GasPricesScreen() {
             <View key={st.label} style={[s.statCard, { backgroundColor: isDark ? Colors.dark.surfaceHighlight : Colors.light.surfaceHighlight, borderColor: st.color + '30' }]}>
               <Text style={[s.statLabel, { color: thm.textMuted }]}>{st.label}</Text>
               <Text style={[s.statVal, { color: st.color }]}>
-                {st.val != null ? formatCurrency(st.val, region === 'usa' ? 'USD' : (region === 'canada' ? 'CAD' : 'EUR')) : '—'}
+                {st.val != null ? formatCurrency(st.val, prices[0]?.currency || userCurrency) : '—'}
               </Text>
             </View>
           ))}

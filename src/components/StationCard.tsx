@@ -6,6 +6,7 @@ import { Colors, Spacing, Radii, FontSize, Shadows, AnimDurations } from '../con
 import { PriceTag } from './PriceTag';
 import { formatDistance } from '../utils/geo';
 import { bestPrice, formatPrice, getPriceTier, type PriceTier } from '../utils/price';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station } from '../types/station';
 
 interface StationCardProps {
@@ -18,11 +19,12 @@ interface StationCardProps {
 export function StationCard({ station, allPrices, fuelFilter, onPress }: StationCardProps) {
   const isDark = useIsDark();
   const t = isDark ? Colors.dark : Colors.light;
+  const localCurrency = getLocalCurrencyCode();
   const best = bestPrice(station, fuelFilter);
   const tier: PriceTier = best
     ? getPriceTier(best.price, allPrices)
     : 'unknown';
-  const priceLabel = best ? formatPrice(best.price, best.currency) : '—';
+  const priceLabel = best ? formatPrice(best.price, localCurrency) : '—';
   const fuelLabel = best?.fuelType ?? '';
 
   const scaleAnim = useRef(new Animated.Value(1)).current;

@@ -17,7 +17,6 @@ import { useAppStore } from '../store/useAppStore';
 import { setAppLanguage } from '../i18n/index';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { FUEL_TYPES, DEFAULT_SEARCH_RADIUS, MAX_SEARCH_RADIUS } from '../constants/fuelTypes';
-import { usePriceAlert } from '../hooks/usePriceAlert';
 
 export default function SettingsScreen() {
   const isDark = useIsDark();
@@ -32,7 +31,6 @@ export default function SettingsScreen() {
   const setFilters = useAppStore((s) => s.setFilters);
   const searchRadius = useAppStore((s) => s.searchRadius);
   const setSearchRadius = useAppStore((s) => s.setSearchRadius);
-  const { alert, updateAlert } = usePriceAlert();
 
   const cardBg = thm.surfaceElevated;
   const border = thm.border;
@@ -201,30 +199,6 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* ── Price Alerts ──────────────── */}
-        <SectionTitle label={t('settings.priceAlerts') || 'Price Alerts'} thm={thm} />
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border }]}>
-          <View style={styles.alertRow}>
-            <View style={[styles.iconWrap, { backgroundColor: Colors.warning + '20' }]}>
-              <MaterialCommunityIcons name="bell-ring-outline" size={20} color={Colors.warning} />
-            </View>
-            <View style={{ flex: 1, paddingRight: Spacing.md }}>
-              <Text style={[styles.alertTitle, { color: thm.text }]}>
-                {t('settings.alertsEnable') || 'Background Alerts'}
-              </Text>
-              <Text style={[styles.alertDesc, { color: thm.textMuted }]}>
-                {t('settings.alertsHint') || 'Get notified when cheap fuel is nearby'}
-              </Text>
-            </View>
-            <Switch
-              value={alert.enabled}
-              onValueChange={(val) => updateAlert({ enabled: val })}
-              trackColor={{ false: thm.border, true: Colors.success }}
-              thumbColor={'#FFF'}
-            />
-          </View>
-        </View>
-
         {/* ── Privacy notice ─────────── */}
         <TouchableOpacity 
           onPress={() => navigation.navigate('PrivacyPolicy')}
@@ -359,19 +333,4 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   privacyText: { fontSize: FontSize.xs, lineHeight: 18 },
-  alertRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  alertTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    marginBottom: 2,
-    letterSpacing: -0.3,
-  },
-  alertDesc: {
-    fontSize: FontSize.xs,
-  },
 });

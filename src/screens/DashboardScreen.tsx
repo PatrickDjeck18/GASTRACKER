@@ -119,10 +119,10 @@ const qa = StyleSheet.create({
 
 /* ── Station Row (premium) ──────────────────────────── */
 function StationRow({
-  station, allPrices, fuelFilter, isDark, onPress, index,
+  station, allPrices, fuelFilter, isDark, localCurrency, onPress, index,
 }: {
   station: Station; allPrices: number[]; fuelFilter: string | null;
-  isDark: boolean; onPress: () => void; index: number;
+  isDark: boolean; localCurrency: string; onPress: () => void; index: number;
 }) {
   const thm = isDark ? Colors.dark : Colors.light;
   const best = bestPrice(station, fuelFilter);
@@ -172,7 +172,7 @@ function StationRow({
       <View style={[sRow.priceBadge, { backgroundColor: col + '12', borderColor: col + '25' }]}>
         {best ? (
           <Text style={[sRow.price, { color: col }]}>
-            {formatPrice(best.price, best.currency)}
+            {formatPrice(best.price, localCurrency)}
           </Text>
         ) : (
           <Text style={[sRow.price, { color: thm.textMuted }]}>—</Text>
@@ -405,6 +405,7 @@ export default function DashboardScreen() {
                   allPrices={allPrices}
                   fuelFilter={fuelFilter}
                   isDark={isDark}
+                  localCurrency={localCurrency}
                   index={idx}
                   onPress={() => goToStation(station.id)}
                 />

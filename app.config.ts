@@ -18,7 +18,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     name: config.name || 'Cheap Fuel Price Global',
     slug: config.slug || 'cheap-fuel-global',
     owner: 'patrickdjeck',
-    version: config.version || '1.0.7',
+    version: config.version || '1.0.9',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
     userInterfaceStyle: config.userInterfaceStyle || 'automatic',

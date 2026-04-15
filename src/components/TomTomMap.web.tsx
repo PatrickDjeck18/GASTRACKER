@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { TOMTOM_API_KEY } from '../api/apiKey';
-import { tierColor } from '../utils/price';
+import { formatPrice, tierColor } from '../utils/price';
 import type { Station } from '../types/station';
 import type { PriceTier } from '../utils/price';
 
@@ -14,6 +14,7 @@ interface Props {
   stations: Station[];
   allPrices: number[];
   fuelFilter: string;
+  localCurrency?: string;
   onSelectStation: (id: string) => void;
   selectedStationId?: string | null;
   isDark: boolean;
@@ -34,6 +35,7 @@ export function TomTomMap({
   stations,
   allPrices,
   fuelFilter,
+  localCurrency = 'USD',
   onSelectStation,
   selectedStationId,
   isDark,
@@ -169,7 +171,7 @@ export function TomTomMap({
         el.style.fontSize = '12px';
         el.style.cursor = 'pointer';
         el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        el.innerText = best ? `${best.currency}${price.toFixed(2)}` : '⛽';
+        el.innerText = best ? formatPrice(price, localCurrency) : '⛽';
         
         el.onclick = (e) => {
           e.stopPropagation();
@@ -185,7 +187,7 @@ export function TomTomMap({
         // Update existing marker element price/color if needed
         const el = marker.getElement();
         el.style.backgroundColor = color;
-        el.innerText = best ? `${best.currency}${price.toFixed(2)}` : '⛽';
+        el.innerText = best ? formatPrice(price, localCurrency) : '⛽';
         if (station.id === selectedStationId) {
           el.style.transform = 'scale(1.2)';
           el.style.zIndex = '1000';
@@ -196,7 +198,7 @@ export function TomTomMap({
       }
     });
 
-  }, [stations, fuelFilter, allPrices, selectedStationId, mapReady]);
+  }, [stations, fuelFilter, allPrices, selectedStationId, mapReady, localCurrency]);
 
   // Recenter if userCoords change and autoCenter is on
   useEffect(() => {

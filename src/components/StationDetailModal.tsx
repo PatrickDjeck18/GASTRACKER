@@ -25,6 +25,7 @@ import { formatPrice, getPriceTier } from '../utils/price';
 import { openNavigation, openPhone } from '../utils/navigation';
 import type { Station } from '../types/station';
 import { useTranslation } from 'react-i18next';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
 interface Props {
   station: Station | null;
@@ -41,6 +42,7 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
   const { t: tr } = useTranslation();
   const enrichStation = useEnrichStation();
   const { showAdNow } = useInterstitialAd();
+  const localCurrency = getLocalCurrencyCode();
 
   /* ── Local enriched station state ─── */
   const [enriched, setEnriched] = useState<Station | null>(null);
@@ -211,7 +213,7 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
                     >
                       <Text style={[styles.fuelType, { color: t.text }]}>{fp.fuelType}</Text>
                       <PriceTag
-                        label={formatPrice(fp.price, fp.currency)}
+                        label={formatPrice(fp.price, localCurrency)}
                         tier={tier}
                         size="sm"
                       />

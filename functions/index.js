@@ -280,7 +280,7 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
     try {
       if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
       const { GoogleGenerativeAI } = require('@google/generative-ai');
-      const { region } = req.body || {};
+      const { region, currencyCode = 'EUR' } = req.body || {};
       const key = process.env.GOOGLE_AI_API_KEY || process.env.FIREBASE_API_KEY;
       if (!key) throw new Error('Missing Gemini/Firebase API Key');
 
@@ -288,10 +288,10 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
       if (region === 'usa') { desc = 'all US states'; }
       if (region === 'canada') { desc = 'all Canadian provinces'; }
 
-      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. IMPORTANT: Prices MUST be exact and strictly ONLY in the local currency of each specific location. Format: [{"region": "${region}", "name": "Country Name", "currency": "LOCAL_CURRENCY_CODE", "gasoline": 1.55, "diesel": 1.65, "lpg": null, "midGrade": null, "premium": null}]. Include 15 major locations.`;
+      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. IMPORTANT: Strictly translate ALL prices into the target currency: ${currencyCode}. Format: [{"region": "${region}", "name": "Country/State Name", "currency": "${currencyCode}", "gasoline": 1.55, "diesel": 1.65, "lpg": null}]. Include 15 major locations.`;
 
       const client = new GoogleGenerativeAI(key);
-      logger.info(`Gemini Regional Prices start: ${region}`);
+      logger.info(`Gemini Regional Prices start: ${region} (Target: ${currencyCode})`);
       const model = client.getGenerativeModel({
         model: 'gemini-3.1-flash-lite-preview',
         generationConfig: { responseMimeType: 'application/json' }

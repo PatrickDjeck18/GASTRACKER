@@ -10,6 +10,9 @@ import {
 import { firebaseApp } from './firebase';
 
 type BackendPayload = Record<string, unknown>;
+interface FirebaseFunctionOptions {
+  timeoutMs?: number;
+}
 
 function getFunctionsBaseUrl(): string {
   const explicitBase = (Constants.expoConfig?.extra?.firebaseFunctionsBaseUrl as string) ?? '';
@@ -46,9 +49,14 @@ function getFirebaseAuth(): Auth {
 
 // ... 
 
-export async function callFirebaseFunction<T>(name: string, payload: BackendPayload): Promise<T> {
+export async function callFirebaseFunction<T>(
+  name: string,
+  payload: BackendPayload,
+  options: FirebaseFunctionOptions = {},
+): Promise<T> {
   const baseUrl = getFunctionsBaseUrl();
   let token: string | null = null;
+  const timeoutMs = options.timeoutMs ?? 15000;
 
   if (shouldUseFunctionAuth()) {
     try {
@@ -62,9 +70,9 @@ export async function callFirebaseFunction<T>(name: string, payload: BackendPayl
     }
   }
 
-  // Create axios instance with 15s timeout for better UX (Firebase functions have 300s max)
+  // Default timeout keeps UI snappy; callers can opt in to longer waits for heavier functions.
   const api = axios.create({
-    timeout: 15000, // 15 seconds
+    timeout: timeoutMs,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
@@ -74,7 +82,7 @@ export async function callFirebaseFunction<T>(name: string, payload: BackendPayl
   } catch (error: any) {
     // Fallback for backends that do not require auth or when token is rejected
     if (error.response && (error.response.status === 401 || error.response.status === 403) && token) {
-      const fallbackApi = axios.create({ timeout: 15000 });
+      const fallbackApi = axios.create({ timeout: timeoutMs });
       try {
         const fallbackResponse = await fallbackApi.post(`${baseUrl}/${name}`, payload);
         return fallbackResponse.data as T;
@@ -86,7 +94,7 @@ export async function callFirebaseFunction<T>(name: string, payload: BackendPayl
 
     // Handle timeout specifically
     if (error.code === 'ECONNABORTED') {
-      throw new Error(`[Firebase Functions] ${name} timeout after 15s`);
+      throw new Error(`[Firebase Functions] ${name} timeout after ${Math.round(timeoutMs / 1000)}s`);
     }
 
     const data = error.response?.data ? JSON.stringify(error.response.data) : error.message;
