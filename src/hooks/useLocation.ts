@@ -30,6 +30,20 @@ export function useLocation(): UseLocationReturn {
         return;
       }
 
+      const knownLoc = await Location.getLastKnownPositionAsync({
+        maxAge: 1000 * 60 * 60 * 24, // 24 hours
+      });
+
+      if (knownLoc) {
+        setCoords({
+          latitude: knownLoc.coords.latitude,
+          longitude: knownLoc.coords.longitude,
+        });
+        // We set loading false early so UI can show cached data quickly
+        setLoading(false);
+      }
+
+      // Fetch fresh position in background to get accurate location
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });

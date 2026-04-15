@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, {
   FadeInDown, FadeInRight, FadeInUp, FadeIn,
@@ -231,7 +231,7 @@ export default function DashboardScreen() {
   const searchRadius = useAppStore((s) => s.searchRadius);
   const setSelectedStation = useAppStore((s) => s.setSelectedStation);
 
-  const { data: stations = [], isLoading } = useStations({
+  const { data: stations = [], isLoading, isRefetching, refetch } = useStations({
     lat: coords?.latitude,
     lon: coords?.longitude,
     radius: searchRadius,
@@ -270,6 +270,14 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => refetch()}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
       >
         {/* ══════ HEADER ══════ */}
         <View style={[ds.header, { paddingTop: insets.top + Spacing.lg }]}>
@@ -373,7 +381,7 @@ export default function DashboardScreen() {
             <View style={{ flex: 1 }}>
               <Text style={[ds.widgetTitle, { color: thm.text }]}>Global Prices</Text>
               <Text style={[ds.widgetSub, { color: thm.textMuted }]}>
-                Compare fuel across USA, Europe & more
+                Compare fuel across USA, Europe, Australia & more
               </Text>
             </View>
             <View style={[ds.chevronWrap, { backgroundColor: thm.surfaceElevated }]}>

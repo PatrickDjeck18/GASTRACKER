@@ -284,11 +284,14 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
       const key = process.env.GOOGLE_AI_API_KEY || process.env.FIREBASE_API_KEY;
       if (!key) throw new Error('Missing Gemini/Firebase API Key');
 
+      const normalizedRegion = String(region || 'europe').toLowerCase();
       let desc = 'all major European countries';
-      if (region === 'usa') { desc = 'all US states'; }
-      if (region === 'canada') { desc = 'all Canadian provinces'; }
+      if (normalizedRegion === 'usa') { desc = 'all US states'; }
+      else if (normalizedRegion === 'canada') { desc = 'all Canadian provinces'; }
+      else if (normalizedRegion === 'australia') { desc = 'all Australian states and territories as well as major cities (Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Canberra, Darwin)'; }
+      else if (normalizedRegion === 'europe') { desc = 'all major European countries'; }
 
-      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. IMPORTANT: Strictly translate ALL prices into the target currency: ${currencyCode}. Format: [{"region": "${region}", "name": "Country/State Name", "currency": "${currencyCode}", "gasoline": 1.55, "diesel": 1.65, "lpg": null}]. Include 15 major locations.`;
+      const prompt = `Return a JSON array of CURRENT estimated fuel prices for ${desc}. IMPORTANT: Strictly translate ALL prices into the target currency: ${currencyCode}. Format: [{"region": "${normalizedRegion}", "name": "Location Name", "currency": "${currencyCode}", "gasoline": 1.55, "diesel": 1.65, "lpg": null, "midGrade": 1.75, "premium": 1.85}]. For Australia: gasoline=91, midGrade=95, premium=98. Include at least 20 locations total.`;
 
       const client = new GoogleGenerativeAI(key);
       logger.info(`Gemini Regional Prices start: ${region} (Target: ${currencyCode})`);

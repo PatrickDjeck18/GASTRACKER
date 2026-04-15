@@ -15,7 +15,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useIsDark } from '../hooks/useIsDark';
 import { useTrafficFlow } from '../hooks/useTrafficFlow';
 import { useEnrichStation } from '../hooks/useStations';
-import { useInterstitialAd } from '../hooks/useInterstitialAd';
+// Ad removal requested
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { PriceTag } from './PriceTag';
 import { TrafficBadge } from './TrafficBadge';
@@ -41,7 +41,7 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
   const t = isDark ? Colors.dark : Colors.light;
   const { t: tr } = useTranslation();
   const enrichStation = useEnrichStation();
-  const { showAdNow } = useInterstitialAd();
+
   const localCurrency = getLocalCurrencyCode();
 
   /* ── Local enriched station state ─── */
@@ -84,7 +84,6 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
       useNativeDriver: true,
     }).start(() => {
       onClose();
-      showAdNow();
     });
   };
 

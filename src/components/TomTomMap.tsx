@@ -2,6 +2,7 @@ import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState, us
 import { StyleSheet, View, Text, ActivityIndicator, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { TOMTOM_API_KEY } from '../api/apiKey';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station } from '../types/station';
 
 /* ── Public ref API ─────────────────────────────────── */
@@ -27,13 +28,16 @@ const TT_JS = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-
 const TT_CSS = 'https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css';
 
 export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner(
-  { stations, allPrices, fuelFilter, localCurrency = 'USD', onSelectStation, selectedStationId, isDark, userCoords, autoCenter = true, onMapMoved },
+  { stations, allPrices, fuelFilter, localCurrency, onSelectStation, selectedStationId, isDark, userCoords, autoCenter = true, onMapMoved },
   ref,
 ) {
   const wvRef = useRef<WebView>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const pendingUpdate = useRef<any>(null);
+
+  // Use local currency if provided, otherwise get from device
+  const currency = localCurrency || getLocalCurrencyCode();
 
   useImperativeHandle(ref, () => ({
     zoomIn: () => wvRef.current?.injectJavaScript('if(window.mapZoomIn) window.mapZoomIn(); true;'),
@@ -92,7 +96,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
 <div id="map"></div>
 <script>
   var map, markers=new Map(), userMark=null;
-  var gStations=[], gFilter=null, gPrices=[], gSelId=null, gCurrency='${localCurrency}';
+  var gStations=[], gFilter=null, gPrices=[], gSelId=null, gCurrency='${currency}';
   var mapLoaded=false;
   var pendingStationUpdate=null;
 
@@ -266,17 +270,17 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
 </script>
 </body>
 </html>`;
-  }, [isDark, style, bg, localCurrency]); // Re-render complete HTML only if theme changes
+  }, [isDark, style, bg, currency]); // Re-render complete HTML only if theme changes
 
   /* ── inject station updates ───────────────────────── */
   useEffect(() => {
-    const payload = { type: 'update', stations, fuelFilter, allPrices, selectedStationId, localCurrency };
+    const payload = { type: 'update', stations, fuelFilter, allPrices, selectedStationId, localCurrency: currency };
     if (!wvRef.current || !mapReady) {
       pendingUpdate.current = payload;
       return;
     }
     wvRef.current.injectJavaScript(`if(window.updateMap){window.updateMap(${JSON.stringify(payload)});}true;`);
-  }, [mapReady, stations, fuelFilter, allPrices, selectedStationId, localCurrency]);
+  }, [mapReady, stations, fuelFilter, allPrices, selectedStationId, currency]);
 
   /* ── inject user-location updates ────────────────── */
   useEffect(() => {

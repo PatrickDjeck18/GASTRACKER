@@ -38,9 +38,9 @@ export interface GasPriceApiResponse<T> {
 
 /** Normalized fuel price entry for display */
 export interface RegionalFuelPrice {
-  region: 'europe' | 'usa' | 'canada';
+  region: 'europe' | 'usa' | 'canada' | 'australia';
   name: string;          // country, state, or province name
-  currency: string;      // "EUR", "USD", "CAD"
+  currency: string;      // "EUR", "USD", "CAD", "AUD" etc.
   gasoline: number | null;
   diesel: number | null;
   lpg: number | null;
@@ -49,4 +49,4 @@ export interface RegionalFuelPrice {
 }
 
 /** Regions the API supports */
-export type GasPriceRegion = 'europe' | 'usa' | 'canada';
+export type GasPriceRegion = 'europe' | 'usa' | 'canada' | 'australia';

@@ -4,7 +4,7 @@ import { getCachedApiResponse, saveApiResponseCache } from './firebase';
 import type { RegionalFuelPrice, GasPriceRegion } from '../types/gasPrice';
 
 // Local cache constants
-const LOCAL_CACHE_PREFIX = '@gemini_regional_cache_';
+const LOCAL_CACHE_PREFIX = '@gemini_regional_cache_v2_';
 const LOCAL_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours for local cache
 const GLOBAL_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours for Firebase cache
 
@@ -101,13 +101,17 @@ export async function fetchCanadaPrices(): Promise<RegionalFuelPrice[]> {
   return await fetchRegionalPrices('canada');
 }
 
+export async function fetchAustraliaPrices(): Promise<RegionalFuelPrice[]> {
+  return await fetchRegionalPrices('australia');
+}
+
 /**
  * Fetch regional prices for a given region in the specified currency.
  * Uses a triple-caching strategy (Local AsyncStorage -> Firestore -> Gemini AI).
  */
 export async function fetchRegionalPrices(region: GasPriceRegion, currencyCode: string = 'EUR'): Promise<RegionalFuelPrice[]> {
   const startTime = Date.now();
-  const cacheKey = `regional_prices_${region}_${currencyCode}`;
+  const cacheKey = `regional_prices_v2_${region}_${currencyCode}`;
   const localCacheKey = getLocalCacheKey(region, currencyCode);
 
   try {

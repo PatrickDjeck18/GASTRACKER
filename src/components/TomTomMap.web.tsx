@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { TOMTOM_API_KEY } from '../api/apiKey';
 import { formatPrice, tierColor } from '../utils/price';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station } from '../types/station';
 import type { PriceTier } from '../utils/price';
 
@@ -35,7 +36,7 @@ export function TomTomMap({
   stations,
   allPrices,
   fuelFilter,
-  localCurrency = 'USD',
+  localCurrency,
   onSelectStation,
   selectedStationId,
   isDark,
@@ -46,6 +47,9 @@ export function TomTomMap({
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
   const [mapReady, setMapReady] = React.useState(false);
+
+  // Use local currency if provided, otherwise get from device
+  const currency = localCurrency || getLocalCurrencyCode();
 
   // Helper to inject scripts
   useEffect(() => {
@@ -69,7 +73,7 @@ export function TomTomMap({
         script.id = 'tomtom-js';
         script.src = TT_MAPS_JS;
         script.async = true;
-        
+
         const promise = new Promise((resolve) => {
           script.onload = resolve;
         });
@@ -126,7 +130,7 @@ export function TomTomMap({
     if (!mapRef.current || !window.tt) return;
 
     const map = mapRef.current;
-    
+
     // Clear old markers that are no longer in the list
     const currentStationIds = new Set(stations.map(s => s.id));
     markersRef.current.forEach((marker, id) => {
@@ -140,7 +144,7 @@ export function TomTomMap({
     stations.forEach((station) => {
       const best = station.fuelPrices.find(fp => fp.fuelType === fuelFilter) || station.fuelPrices[0];
       const price = best?.price || 0;
-      
+
       // Determine color
       let tier: PriceTier = 'unknown';
       if (allPrices.length > 0 && price > 0) {
@@ -171,8 +175,8 @@ export function TomTomMap({
         el.style.fontSize = '12px';
         el.style.cursor = 'pointer';
         el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        el.innerText = best ? formatPrice(price, localCurrency) : '⛽';
-        
+        el.innerText = best ? formatPrice(price, currency) : '⛽';
+
         el.onclick = (e) => {
           e.stopPropagation();
           onSelectStation(station.id);
@@ -181,13 +185,13 @@ export function TomTomMap({
         marker = new window.tt.Marker({ element: el })
           .setLngLat([station.coordinates.longitude, station.coordinates.latitude])
           .addTo(map);
-        
+
         markersRef.current.set(station.id, marker);
       } else {
         // Update existing marker element price/color if needed
         const el = marker.getElement();
         el.style.backgroundColor = color;
-        el.innerText = best ? formatPrice(price, localCurrency) : '⛽';
+        el.innerText = best ? formatPrice(price, currency) : '⛽';
         if (station.id === selectedStationId) {
           el.style.transform = 'scale(1.2)';
           el.style.zIndex = '1000';
@@ -198,7 +202,7 @@ export function TomTomMap({
       }
     });
 
-  }, [stations, fuelFilter, allPrices, selectedStationId, mapReady, localCurrency]);
+  }, [stations, fuelFilter, allPrices, selectedStationId, mapReady, currency]);
 
   // Recenter if userCoords change and autoCenter is on
   useEffect(() => {
@@ -209,9 +213,9 @@ export function TomTomMap({
 
   return (
     <View style={styles.container}>
-      <div 
-        ref={mapContainerRef} 
-        style={{ width: '100%', height: '100%' }} 
+      <div
+        ref={mapContainerRef}
+        style={{ width: '100%', height: '100%' }}
       />
     </View>
   );

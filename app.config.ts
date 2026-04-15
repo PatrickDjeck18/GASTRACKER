@@ -32,6 +32,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ios: {
         supportsTablet: true,
         bundleIdentifier: 'cheap.fuel.price.global',
+        buildNumber: config.ios?.buildNumber || '12',
         infoPlist: {
             ITSAppUsesNonExemptEncryption: false,
             NSLocationWhenInUseUsageDescription:
@@ -59,6 +60,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             backgroundColor: '#0d47a1',
         },
         package: 'com.fuel.price.global',
+        versionCode: config.android?.versionCode || 12,
         permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS'],
     },
     web: {

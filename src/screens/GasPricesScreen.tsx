@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   ActivityIndicator, RefreshControl, TextInput, Platform,
+  useWindowDimensions,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,25 +19,34 @@ type FuelTab = 'gasoline' | 'diesel' | 'lpg' | 'midGrade' | 'premium';
 
 const REGIONS: { key: GasPriceRegion; label: string; icon: string }[] = [
   { key: 'europe', label: '🇪🇺  Europe', icon: 'earth' },
-  { key: 'usa',    label: '🇺🇸  USA',    icon: 'flag' },
+  { key: 'usa', label: '🇺🇸  USA', icon: 'flag' },
   { key: 'canada', label: '🇨🇦  Canada', icon: 'flag' },
+  { key: 'australia', label: '🇦🇺  Australia', icon: 'flag' },
 ];
 
 const FUEL_TABS_EU: { key: FuelTab; label: string }[] = [
   { key: 'gasoline', label: 'Gasoline' },
-  { key: 'diesel',   label: 'Diesel' },
-  { key: 'lpg',      label: 'LPG' },
+  { key: 'diesel', label: 'Diesel' },
+  { key: 'lpg', label: 'LPG' },
 ];
 
 const FUEL_TABS_US: { key: FuelTab; label: string }[] = [
   { key: 'gasoline', label: 'Regular' },
   { key: 'midGrade', label: 'Mid-Grade' },
-  { key: 'premium',  label: 'Premium' },
-  { key: 'diesel',   label: 'Diesel' },
+  { key: 'premium', label: 'Premium' },
+  { key: 'diesel', label: 'Diesel' },
 ];
 
 const FUEL_TABS_CA: { key: FuelTab; label: string }[] = [
   { key: 'gasoline', label: 'Regular' },
+];
+
+const FUEL_TABS_AU: { key: FuelTab; label: string }[] = [
+  { key: 'gasoline', label: 'Unleaded 91' },
+  { key: 'midGrade', label: 'Premium 95' },
+  { key: 'premium', label: 'Premium 98' },
+  { key: 'diesel', label: 'Diesel' },
+  { key: 'lpg', label: 'LPG' },
 ];
 
 /* ── Country Flag Emoji Helper ─────────────────────── */
@@ -59,6 +69,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 function getFlag(name: string, region: GasPriceRegion): string {
   if (region === 'usa') return '🇺🇸';
   if (region === 'canada') return '🇨🇦';
+  if (region === 'australia') return '🇦🇺';
   return COUNTRY_FLAGS[name] ?? '🏳️';
 }
 
@@ -166,17 +177,61 @@ function PriceCard({
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function GasPricesScreen() {
   const isDark = useIsDark();
-  const thm    = isDark ? Colors.dark : Colors.light;
+  const thm = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
 
-  const [region, setRegion]     = useState<GasPriceRegion>('europe');
-  const [fuelTab, setFuelTab]   = useState<FuelTab>('gasoline');
-  const [sortKey, setSortKey]   = useState<SortKey>('gasoline');
-  const [sortAsc, setSortAsc]   = useState(true);
-  const [search, setSearch]     = useState('');
+  const [region, setRegion] = useState<GasPriceRegion>('europe');
+  const [fuelTab, setFuelTab] = useState<FuelTab>('gasoline');
+  const [sortKey, setSortKey] = useState<SortKey>('gasoline');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [search, setSearch] = useState('');
 
   const { data: prices = [], isLoading, refetch, isRefetching } = useGasPrices(region);
   const userCurrency = getLocalCurrencyCode();
+  const { width: screenWidth } = useWindowDimensions();
+
+  /* responsive calculations for region tabs */
+  const regionTabFontSize = useMemo(() => {
+    if (screenWidth < 350) return FontSize.sm;   // 13px for very small screens
+    if (screenWidth < 400) return FontSize.md;   // 15px for small screens
+    return FontSize.md;                          // 15px default (could be lg for larger)
+  }, [screenWidth]);
+
+  const regionTabPadding = useMemo(() => {
+    if (screenWidth < 350) return Spacing.sm;
+    return Spacing.md;
+  }, [screenWidth]);
+
+  const regionRowGap = useMemo(() => {
+    if (screenWidth < 350) return Spacing.xs;
+    return Spacing.sm;
+  }, [screenWidth]);
+
+  /* responsive labels for region tabs */
+  const regionLabels = useMemo(() => {
+    if (screenWidth < 380) {
+      // Remove emojis and use abbreviated names on very small screens
+      return REGIONS.map(r => {
+        if (r.key === 'europe') return 'EU';
+        if (r.key === 'usa') return 'US';
+        if (r.key === 'canada') return 'CA';
+        if (r.key === 'australia') return 'AU';
+        return r.label;
+      });
+    }
+    if (screenWidth < 420) {
+      // Keep emojis but maybe shorten text? For now keep original.
+      return REGIONS.map(r => r.label);
+    }
+    return REGIONS.map(r => r.label);
+  }, [screenWidth]);
+
+  /* minimum width for region tabs */
+  const regionTabMinWidth = useMemo(() => {
+    if (screenWidth < 350) return 70;
+    if (screenWidth < 400) return 80;
+    return 90;
+  }, [screenWidth]);
 
   /* reset fuel tab when switching regions */
   const handleRegionChange = useCallback((r: GasPriceRegion) => {
@@ -186,7 +241,7 @@ export default function GasPricesScreen() {
     setSearch('');
   }, []);
 
-  const fuelTabs = region === 'europe' ? FUEL_TABS_EU : (region === 'usa' ? FUEL_TABS_US : FUEL_TABS_CA);
+  const fuelTabs = region === 'europe' ? FUEL_TABS_EU : (region === 'usa' ? FUEL_TABS_US : (region === 'canada' ? FUEL_TABS_CA : FUEL_TABS_AU));
 
   /* filter + sort */
   const filtered = useMemo(() => {
@@ -245,26 +300,30 @@ export default function GasPricesScreen() {
       </View>
 
       {/* Region tabs */}
-      <View style={[s.regionRow, { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface }]}>
-        {REGIONS.map((r) => (
+      <View style={[s.regionRow, { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface, gap: regionRowGap }]}>
+        {REGIONS.map((r, idx) => (
           <TouchableOpacity
             key={r.key}
             style={[
               s.regionTab,
               region === r.key && s.regionTabActive,
               region === r.key && { borderColor: Colors.primary },
-              { backgroundColor: region === r.key
+              {
+                backgroundColor: region === r.key
                   ? (isDark ? Colors.primaryGlow : Colors.primaryMuted)
-                  : 'transparent' },
+                  : 'transparent',
+                paddingVertical: regionTabPadding,
+                minWidth: regionTabMinWidth,
+              },
             ]}
             onPress={() => handleRegionChange(r.key)}
             activeOpacity={0.7}
           >
             <Text style={[
               s.regionLabel,
-              { color: region === r.key ? Colors.primary : thm.textMuted },
-            ]}>
-              {r.label}
+              { color: region === r.key ? Colors.primary : thm.textMuted, fontSize: regionTabFontSize },
+            ]} numberOfLines={1}>
+              {regionLabels[idx]}
             </Text>
           </TouchableOpacity>
         ))}
@@ -276,7 +335,7 @@ export default function GasPricesScreen() {
           <MaterialCommunityIcons name="magnify" size={18} color={thm.textMuted} />
           <TextInput
             style={[s.searchInput, { color: thm.text }]}
-            placeholder={region === 'europe' ? 'Search country…' : 'Search state…'}
+            placeholder={region === 'europe' ? 'Search country…' : (region === 'australia' ? 'Search state/city…' : 'Search state…')}
             placeholderTextColor={thm.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -317,7 +376,7 @@ export default function GasPricesScreen() {
       {!isLoading && allPrices.length > 0 && (
         <View style={[s.statsRow, { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface }]}>
           {[
-            { label: 'Lowest',  val: min, color: Colors.price.cheap },
+            { label: 'Lowest', val: min, color: Colors.price.cheap },
             { label: 'Average', val: avg, color: Colors.primary },
             { label: 'Highest', val: max, color: Colors.price.expensive },
           ].map((st) => (
@@ -346,7 +405,7 @@ export default function GasPricesScreen() {
             {sortKey === 'name' ? 'A → Z' : (sortAsc ? 'Cheapest first' : 'Expensive first')}
           </Text>
           <Text style={[s.countText, { color: thm.textMuted }]}>
-            {filtered.length} {region === 'europe' ? 'countries' : (region === 'usa' ? 'states' : 'provinces')}
+            {filtered.length} {region === 'europe' ? 'countries' : (region === 'usa' ? 'states' : (region === 'australia' ? 'locations' : 'provinces'))}
           </Text>
         </TouchableOpacity>
       )}
@@ -356,7 +415,7 @@ export default function GasPricesScreen() {
         <View style={s.loadWrap}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={[s.loadText, { color: thm.textSecondary }]}>
-            Fetching {region === 'europe' ? 'European' : (region === 'usa' ? 'US' : 'Canadian')} prices…
+            Fetching {region === 'europe' ? 'European' : (region === 'usa' ? 'US' : (region === 'canada' ? 'Canadian' : 'Australian'))} prices…
           </Text>
         </View>
       ) : (
