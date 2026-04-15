@@ -15,10 +15,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#0d47a1"
     },
-    "updates": {
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/b77d60a9-dd21-4bca-99d6-22e1753c1c5b"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "cheap.fuel.price.global",
@@ -164,9 +160,19 @@
     ],
     "extra": {
       "tomtomApiKey": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
+      "firebaseApiKey": "AIzaSyCvHaxxgftJgvmefWKK7JgVTaC5xwQw1_8",
+      "firebaseAuthDomain": "fuelprice-d64ae.firebaseapp.com",
+      "firebaseProjectId": "fuelprice-d64ae",
+      "firebaseStorageBucket": "fuelprice-d64ae.firebasestorage.app",
+      "firebaseMessagingSenderId": "64993832802",
+      "firebaseAppId": "1:64993832802:web:bec8a2c37d8dc18a7e463b",
+      "firebaseMeasurementId": "G-EP5QNBNPWZ",
+      "firebaseFunctionsBaseUrl": "",
+      "firebaseFunctionsRequireAuth": "false",
       "eas": {
-        "projectId": "b77d60a9-dd21-4bca-99d6-22e1753c1c5b"
+        "projectId": "558fa8f6-a21c-405d-9066-cc9775778f0c"
       }
-    }
+    },
+    "owner": "goodtech18"
   }
 }

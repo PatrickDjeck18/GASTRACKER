@@ -16,8 +16,9 @@ const withDefaultCFBundleDisplayName = (config: ExpoConfig) => {
 const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ...config,
     name: config.name || 'Cheap Fuel Price Global',
+    owner: 'goodtech18',
     slug: config.slug || 'cheap-fuel-global',
-    owner: 'patrickdjeck',
+
     version: config.version || '1.0.9',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
