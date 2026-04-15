@@ -14,7 +14,7 @@ import { TomTomMap } from '../components/TomTomMap';
 import { StationDetailModal } from '../components/StationDetailModal';
 import { EmptyState } from '../components/EmptyState';
 import { SearchBar } from '../components/SearchBar';
-import { AdBanner } from '../components/AdBanner';
+
 
 import { bestPrice, getPriceTier } from '../utils/price';
 import { Colors, Spacing, Radii, FontSize } from '../constants/theme';
@@ -229,11 +229,6 @@ export default function HomeScreen() {
             {stations.length}
           </Text>
         </View>
-      )}
-
-      {/* ── Ad Banner above station detail ─── */}
-      {!selectedStation && (
-        <AdBanner style={styles.adBanner} />
       )}
 
       {/* ── Station detail modal ─── */}

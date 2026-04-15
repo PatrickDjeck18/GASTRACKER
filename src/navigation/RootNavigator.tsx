@@ -8,6 +8,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { useIsDark } from '../hooks/useIsDark';
 import { Colors, Radii } from '../constants/theme';
+import { AdBanner } from '../components/AdBanner';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -54,7 +55,8 @@ export function RootNavigator() {
   const bottomPadding = Math.max(insets.bottom, 8); // Minimum padding for aesthetics
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <View style={{ flex: 1, backgroundColor: navTheme.colors.background }}>
+      <NavigationContainer theme={navTheme}>
       <Tab.Navigator
         screenOptions={{
           headerTitle: t('app.title'),
@@ -73,9 +75,9 @@ export function RootNavigator() {
             backgroundColor: isDark ? Colors.dark.tabBar : Colors.light.tabBar,
             borderTopColor: isDark ? Colors.dark.tabBarBorder : Colors.light.tabBarBorder,
             borderTopWidth: StyleSheet.hairlineWidth,
-            paddingBottom: Platform.OS === 'ios' ? insets.bottom : insets.bottom + 8,
+            paddingBottom: Platform.OS === 'ios' ? 0 : 8,
             paddingTop: 8,
-            height: 62 + insets.bottom,
+            height: 62,
             elevation: 0,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -2 },
@@ -162,6 +164,10 @@ export function RootNavigator() {
         />
       </Tab.Navigator>
     </NavigationContainer>
+    <View style={{ paddingBottom: insets.bottom }}>
+      <AdBanner style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? Colors.dark.tabBarBorder : Colors.light.tabBarBorder }} />
+    </View>
+  </View>
   );
 }
 

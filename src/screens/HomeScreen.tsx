@@ -20,7 +20,7 @@ import { TomTomMap, type TomTomMapRef } from '../components/TomTomMap';
 import { StationDetailModal } from '../components/StationDetailModal';
 import { EmptyState }         from '../components/EmptyState';
 import { SearchBar }          from '../components/SearchBar';
-import { AdBanner }           from '../components/AdBanner';
+
 import { SkeletonCards }      from '../components/SkeletonCards';
 import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
@@ -479,11 +479,6 @@ export default function HomeScreen() {
         <View style={[g.peek, { bottom: peekBottom }]}>
           <SkeletonCards count={3} />
         </View>
-      )}
-
-      {/* ── Ad banner ────────────────────────────────── */}
-      {!selectedStation && !showPeek && (
-        <AdBanner style={g.adBanner} />
       )}
 
       {/* ── Station detail modal ─────────────────────── */}

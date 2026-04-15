@@ -13,7 +13,7 @@ import { SortToggle } from '../components/SortToggle';
 import { StationDetailModal } from '../components/StationDetailModal';
 import { StationListSkeleton } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
-import { AdBanner } from '../components/AdBanner';
+
 
 import { bestPrice } from '../utils/price';
 import { Colors, Spacing, FontSize, Radii, Shadows } from '../constants/theme';
@@ -145,9 +145,6 @@ export default function StationListScreen() {
           }
         />
       )}
-
-      {/* ── Ad Banner ─── */}
-      <AdBanner style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: thm.border }} />
 
       {selectedStation && (
         <StationDetailModal
