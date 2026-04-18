@@ -173,7 +173,12 @@ export default function SavingsScreen() {
   const thm     = isDark ? Colors.dark : Colors.light;
   const { t }   = useTranslation();
   const insets  = useSafeAreaInsets();
-  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
+  const countryCode = useAppStore((s) => s.countryCode);
+  const manualCurrency = useAppStore((s) => s.manualCurrency);
+  const localCurrency = useMemo(
+    () => getLocalCurrencyCode(),
+    [countryCode, manualCurrency],
+  );
 
   /* ── store data ─── */
   const { coords }    = useLocation();

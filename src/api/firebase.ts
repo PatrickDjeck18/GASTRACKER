@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc, setDoc, setLogLevel } from "firebase/firestore";
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -28,6 +28,11 @@ const isConfigValid = Object.values(firebaseConfig).every(value => value && valu
 let app: any = null;
 let analytics: any = null;
 let db: any = null;
+let didWarnApiLogPermission = false;
+
+// Reduce noisy Firestore SDK connectivity logs. The app already handles
+// offline mode gracefully and surfaces only actionable warnings.
+setLogLevel('silent');
 
 if (isConfigValid) {
     try {
@@ -141,7 +146,16 @@ export async function logApiCall(entry: Omit<ApiLogEntry, 'timestamp'>): Promise
         await addDoc(collection(db, COLLECTIONS.API_LOGS), docData);
         console.debug('[Firebase] API call logged:', entry.service);
     } catch (error) {
-        console.warn('[Firebase] Failed to log API call:', error);
+        // Firestore rules can deny client-side logging in production; avoid noisy spam.
+        const code = (error as { code?: string } | null)?.code ?? '';
+        const message = (error as { message?: string } | null)?.message ?? '';
+        const isPermissionError = code === 'permission-denied' || /insufficient permissions/i.test(message);
+        if (!isPermissionError) {
+            console.warn('[Firebase] Failed to log API call:', error);
+        } else if (!didWarnApiLogPermission) {
+            console.warn('[Firebase] API logging disabled by Firestore rules (permission-denied).');
+            didWarnApiLogPermission = true;
+        }
         // Silently fail - logging should not break the app
     }
 }

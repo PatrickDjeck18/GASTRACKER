@@ -19,7 +19,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     owner: 'goodtech18',
     slug: config.slug || 'cheap-fuel-global',
 
-    version: config.version || '1.0.9',
+    version: config.version || '1.0.10',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
     userInterfaceStyle: config.userInterfaceStyle || 'automatic',
@@ -60,7 +60,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             backgroundColor: '#0d47a1',
         },
         package: 'com.fuel.price.global',
-        versionCode: config.android?.versionCode || 12,
+        versionCode: config.android?.versionCode || 13,
         permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS'],
     },
     web: {

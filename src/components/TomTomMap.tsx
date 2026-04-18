@@ -96,7 +96,8 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
 <div id="map"></div>
 <script>
   var map, markers=new Map(), userMark=null;
-  var gStations=[], gFilter=null, gPrices=[], gSelId=null, gCurrency='${currency}';
+  var defaultCurrency='${currency}';
+  var gStations=[], gFilter=null, gPrices=[], gSelId=null, gCurrency=defaultCurrency;
   var mapLoaded=false;
   var pendingStationUpdate=null;
 
@@ -159,7 +160,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
 
   function sym(c){
     var m={EUR:'\u20ac',USD:'$',GBP:'\u00a3',ZAR:'R',BRL:'R$',CAD:'C$',AUD:'A$',CHF:'CHF ',PLN:'z\u0142',TRY:'\u20ba'};
-    var code = (c||'USD').toUpperCase();
+    var code = (c||defaultCurrency||'EUR').toUpperCase();
     return m[code] || (code+' ');
   }
 
@@ -192,7 +193,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
         try {
           var fps=s.fuelPrices&&s.fuelPrices.length>0;
           var fp=fps?(gFilter?s.fuelPrices.find(function(p){return p.fuelType===gFilter;})||s.fuelPrices[0]:s.fuelPrices[0]):null;
-          var price=fp?fp.price:0, cur=gCurrency||'USD';
+          var price=fp?fp.price:0, cur=gCurrency||defaultCurrency||'EUR';
           var tc=tierCol(tier(price,gPrices));
           var lbl=price>0?(sym(cur)+price.toFixed(2)):'⛽';
           var isSel=s.id===gSelId;

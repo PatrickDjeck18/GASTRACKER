@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, TextInput, Platform,
+  ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView,
   useWindowDimensions,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -17,11 +17,11 @@ import type { GasPriceRegion, RegionalFuelPrice } from '../types/gasPrice';
 type SortKey = 'name' | 'gasoline' | 'diesel';
 type FuelTab = 'gasoline' | 'diesel' | 'lpg' | 'midGrade' | 'premium';
 
-const REGIONS: { key: GasPriceRegion; label: string; icon: string }[] = [
-  { key: 'europe', label: '🇪🇺  Europe', icon: 'earth' },
-  { key: 'usa', label: '🇺🇸  USA', icon: 'flag' },
-  { key: 'canada', label: '🇨🇦  Canada', icon: 'flag' },
-  { key: 'australia', label: '🇦🇺  Australia', icon: 'flag' },
+const REGIONS: { key: GasPriceRegion; label: string; icon: string; emoji: string }[] = [
+  { key: 'europe', label: 'Europe', icon: 'earth', emoji: '🇪🇺' },
+  { key: 'usa', label: 'USA', icon: 'flag', emoji: '🇺🇸' },
+  { key: 'canada', label: 'Canada', icon: 'flag', emoji: '🇨🇦' },
+  { key: 'australia', label: 'Australia', icon: 'kangaroo', emoji: '🇦🇺' },
 ];
 
 const FUEL_TABS_EU: { key: FuelTab; label: string }[] = [
@@ -173,6 +173,43 @@ function PriceCard({
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SKELETON CARD (shown while loading)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function PriceCardSkeleton({ isDark }: { isDark: boolean }) {
+  const shimmerColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+  const lineColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)';
+  return (
+    <View style={[
+      s.card,
+      {
+        backgroundColor: isDark ? Colors.dark.card : Colors.light.card,
+        borderColor: isDark ? Colors.dark.cardBorder : Colors.light.cardBorder,
+        borderLeftWidth: 4,
+        borderLeftColor: shimmerColor,
+      },
+    ]}>
+      {/* Rank circle */}
+      <View style={[s.rankBadge, { backgroundColor: shimmerColor }]} />
+
+      {/* Flag + name lines */}
+      <View style={s.nameBlock}>
+        <View style={[s.flag, { width: 28, height: 24, borderRadius: 4, backgroundColor: shimmerColor }]} />
+        <View style={s.nameCol}>
+          <View style={{ height: 14, width: '70%', borderRadius: 6, backgroundColor: lineColor, marginBottom: 6 }} />
+          <View style={{ height: 10, width: '40%', borderRadius: 4, backgroundColor: shimmerColor }} />
+        </View>
+      </View>
+
+      {/* Price block */}
+      <View style={[s.priceBlock, { alignItems: 'flex-end', gap: 6 }]}>
+        <View style={{ height: 18, width: 64, borderRadius: 6, backgroundColor: lineColor }} />
+        <View style={{ height: 14, width: 40, borderRadius: 10, backgroundColor: shimmerColor }} />
+      </View>
+    </View>
+  );
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    MAIN SCREEN
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 export default function GasPricesScreen() {
@@ -186,51 +223,16 @@ export default function GasPricesScreen() {
   const [sortAsc, setSortAsc] = useState(true);
   const [search, setSearch] = useState('');
 
-  const { data: prices = [], isLoading, refetch, isRefetching } = useGasPrices(region);
+  const { data: prices = [], isLoading, isFetching, refetch, isRefetching } = useGasPrices(region);
   const userCurrency = getLocalCurrencyCode();
   const { width: screenWidth } = useWindowDimensions();
 
-  /* responsive calculations for region tabs */
-  const regionTabFontSize = useMemo(() => {
-    if (screenWidth < 350) return FontSize.sm;   // 13px for very small screens
-    if (screenWidth < 400) return FontSize.md;   // 15px for small screens
-    return FontSize.md;                          // 15px default (could be lg for larger)
-  }, [screenWidth]);
-
-  const regionTabPadding = useMemo(() => {
-    if (screenWidth < 350) return Spacing.sm;
-    return Spacing.md;
-  }, [screenWidth]);
-
-  const regionRowGap = useMemo(() => {
-    if (screenWidth < 350) return Spacing.xs;
-    return Spacing.sm;
-  }, [screenWidth]);
-
-  /* responsive labels for region tabs */
-  const regionLabels = useMemo(() => {
-    if (screenWidth < 380) {
-      // Remove emojis and use abbreviated names on very small screens
-      return REGIONS.map(r => {
-        if (r.key === 'europe') return 'EU';
-        if (r.key === 'usa') return 'US';
-        if (r.key === 'canada') return 'CA';
-        if (r.key === 'australia') return 'AU';
-        return r.label;
-      });
-    }
-    if (screenWidth < 420) {
-      // Keep emojis but maybe shorten text? For now keep original.
-      return REGIONS.map(r => r.label);
-    }
-    return REGIONS.map(r => r.label);
-  }, [screenWidth]);
-
-  /* minimum width for region tabs */
+  /* responsive region tab sizing */
+  const isCompactRegionTabs = screenWidth < 390;
   const regionTabMinWidth = useMemo(() => {
-    if (screenWidth < 350) return 70;
-    if (screenWidth < 400) return 80;
-    return 90;
+    if (screenWidth < 360) return 84;
+    if (screenWidth < 420) return 102;
+    return 120;
   }, [screenWidth]);
 
   /* reset fuel tab when switching regions */
@@ -300,33 +302,47 @@ export default function GasPricesScreen() {
       </View>
 
       {/* Region tabs */}
-      <View style={[s.regionRow, { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface, gap: regionRowGap }]}>
-        {REGIONS.map((r, idx) => (
-          <TouchableOpacity
-            key={r.key}
-            style={[
-              s.regionTab,
-              region === r.key && s.regionTabActive,
-              region === r.key && { borderColor: Colors.primary },
-              {
-                backgroundColor: region === r.key
-                  ? (isDark ? Colors.primaryGlow : Colors.primaryMuted)
-                  : 'transparent',
-                paddingVertical: regionTabPadding,
-                minWidth: regionTabMinWidth,
-              },
-            ]}
-            onPress={() => handleRegionChange(r.key)}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              s.regionLabel,
-              { color: region === r.key ? Colors.primary : thm.textMuted, fontSize: regionTabFontSize },
-            ]} numberOfLines={1}>
-              {regionLabels[idx]}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={[s.regionWrap, { backgroundColor: isDark ? Colors.dark.surface : Colors.light.surface }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.regionRow}
+        >
+          {REGIONS.map((r) => {
+            const active = region === r.key;
+            return (
+              <TouchableOpacity
+                key={r.key}
+                style={[
+                  s.regionTab,
+                  {
+                    minWidth: regionTabMinWidth,
+                    backgroundColor: active
+                      ? (isDark ? Colors.primaryGlow : Colors.primaryMuted)
+                      : (isDark ? Colors.dark.surfaceHighlight : Colors.light.surfaceHighlight),
+                    borderColor: active ? Colors.primary : thm.border,
+                  },
+                ]}
+                onPress={() => handleRegionChange(r.key)}
+                activeOpacity={0.8}
+              >
+                <View style={s.regionTabInner}>
+                  <Text style={s.regionEmoji}>{r.emoji}</Text>
+                  <Text
+                    style={[
+                      s.regionLabel,
+                      { color: active ? Colors.primary : thm.textMuted },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {isCompactRegionTabs ? (r.key === 'australia' ? 'AU' : r.label.slice(0, 2).toUpperCase()) : r.label}
+                  </Text>
+                  {active ? <View style={s.regionActiveDot} /> : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Search bar */}
@@ -410,14 +426,33 @@ export default function GasPricesScreen() {
         </TouchableOpacity>
       )}
 
-      {/* List */}
-      {isLoading ? (
-        <View style={s.loadWrap}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={[s.loadText, { color: thm.textSecondary }]}>
-            Fetching {region === 'europe' ? 'European' : (region === 'usa' ? 'US' : (region === 'canada' ? 'Canadian' : 'Australian'))} prices…
+      {/* Fetching banner — shown when background re-fetch is running but we already have data */}
+      {isFetching && !isLoading && (
+        <View style={[s.fetchingBanner, { backgroundColor: Colors.primaryMuted }]}>
+          <ActivityIndicator size="small" color={Colors.primary} />
+          <Text style={[s.fetchingText, { color: Colors.primary }]}>
+            Updating prices…
           </Text>
         </View>
+      )}
+
+      {/* List */}
+      {isLoading ? (
+        <FlatList
+          data={[1, 2, 3, 4, 5, 6, 7]}
+          keyExtractor={(item) => String(item)}
+          contentContainerStyle={[s.listContent, { paddingBottom: insets.bottom + 100 }]}
+          scrollEnabled={false}
+          renderItem={() => <PriceCardSkeleton isDark={isDark} />}
+          ListHeaderComponent={
+            <View style={s.loadBanner}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={[s.loadBannerText, { color: thm.textSecondary }]}>
+                Fetching {region === 'europe' ? 'European' : (region === 'usa' ? 'US' : (region === 'canada' ? 'Canadian' : 'Australian'))} prices…
+              </Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={filtered}
@@ -476,24 +511,41 @@ const s = StyleSheet.create({
   },
 
   /* Region tabs */
+  regionWrap: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+  },
   regionRow: {
-    flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
     gap: Spacing.sm,
   },
   regionTab: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.xl,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
+    justifyContent: 'center',
+    borderWidth: 1,
+    ...Shadows.sm,
   },
-  regionTabActive: {},
+  regionTabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  regionEmoji: {
+    fontSize: 14,
+  },
   regionLabel: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  regionActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
   },
 
   /* Search */
@@ -656,6 +708,18 @@ const s = StyleSheet.create({
   },
 
   /* Loading */
+  loadBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  loadBannerText: {
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
   loadWrap: {
     flex: 1,
     justifyContent: 'center',
@@ -664,6 +728,21 @@ const s = StyleSheet.create({
   },
   loadText: {
     fontSize: FontSize.md,
+  },
+  fetchingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: 6,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderRadius: Radii.full,
+  },
+  fetchingText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 
   /* List */

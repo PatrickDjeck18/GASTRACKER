@@ -17,6 +17,7 @@ import { useAppStore } from '../store/useAppStore';
 import { setAppLanguage } from '../i18n/index';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { FUEL_TYPES, DEFAULT_SEARCH_RADIUS, MAX_SEARCH_RADIUS } from '../constants/fuelTypes';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
 export default function SettingsScreen() {
   const isDark = useIsDark();
@@ -31,6 +32,9 @@ export default function SettingsScreen() {
   const setFilters = useAppStore((s) => s.setFilters);
   const searchRadius = useAppStore((s) => s.searchRadius);
   const setSearchRadius = useAppStore((s) => s.setSearchRadius);
+  const weeklySavingsGoal = useAppStore((s) => s.retention?.weeklySavingsGoal ?? 25);
+  const setWeeklySavingsGoal = useAppStore((s) => s.setWeeklySavingsGoal);
+  const localCurrency = getLocalCurrencyCode();
 
   const cardBg = thm.surfaceElevated;
   const border = thm.border;
@@ -163,6 +167,37 @@ export default function SettingsScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* ── Weekly savings goal ───── */}
+        <SectionTitle label={`Weekly Savings Goal (${localCurrency})`} thm={thm} />
+        <View style={[styles.card, { backgroundColor: cardBg, borderColor: border, padding: Spacing.md }]}>
+          <View style={styles.chipWrap}>
+            {[10, 25, 50, 75, 100].map((goal) => {
+              const active = weeklySavingsGoal === goal;
+              return (
+                <TouchableOpacity
+                  key={goal}
+                  style={[
+                    styles.goalChip,
+                    {
+                      backgroundColor: active ? Colors.primary : thm.background,
+                      borderColor: active ? Colors.primary : thm.border,
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setWeeklySavingsGoal(goal)}
+                >
+                  <Text style={[styles.goalChipText, { color: active ? '#FFF' : thm.text }]}>
+                    {goal}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={[styles.goalHint, { color: thm.textMuted }]}>
+            Used to track your progress on Dashboard each week.
+          </Text>
         </View>
 
         {/* ── Language ───────────────── */}
@@ -304,6 +339,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   radiusText: { fontSize: FontSize.md, fontWeight: '800' },
+  goalChip: {
+    minWidth: 64,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  goalChipText: {
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+  },
+  goalHint: {
+    marginTop: Spacing.sm,
+    fontSize: FontSize.xs,
+    fontWeight: '500',
+  },
   langChip: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -239,7 +239,12 @@ export default function HomeScreen() {
   const isDark = useIsDark();
   const thm    = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
-  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
+  const countryCode = useAppStore((s) => s.countryCode);
+  const manualCurrency = useAppStore((s) => s.manualCurrency);
+  const localCurrency = useMemo(
+    () => getLocalCurrencyCode(),
+    [countryCode, manualCurrency],
+  );
 
   /* ── location ─── */
   const { coords, loading: locLoading, error: locError, refresh: reLocate } = useLocation();

@@ -9,6 +9,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { useIsDark } from '../hooks/useIsDark';
 import { Colors, Radii } from '../constants/theme';
 import { AdBanner } from '../components/AdBanner';
+import { navigationRef } from './navigationRef';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -56,7 +57,7 @@ export function RootNavigator() {
 
   return (
     <View style={{ flex: 1, backgroundColor: navTheme.colors.background }}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Tab.Navigator
         screenOptions={{
           headerTitle: t('app.title'),

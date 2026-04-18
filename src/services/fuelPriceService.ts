@@ -2,6 +2,7 @@ import { getLocales } from 'expo-localization';
 import { peekLocalGeminiCache, fetchFuelPricesWithGemini } from '../api/gemini';
 import { searchGasStations } from '../api/tomtom';
 import { saveEnrichedStation, logUserSearch } from '../api/firebase';
+import { useAppStore } from '../store/useAppStore';
 import type { Station } from '../types/station';
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -14,6 +15,10 @@ import type { QueryClient } from '@tanstack/react-query';
  * Falls back to 'EUR' if not determinable.
  */
 export function getLocalCurrencyCode(): string {
+  const { manualCurrency, countryCode } = useAppStore.getState();
+  if (manualCurrency) return manualCurrency.toUpperCase();
+  if (countryCode) return regionToCurrency(countryCode);
+
   try {
     const locales = getLocales();
     if (!locales || locales.length === 0) return 'EUR';
@@ -72,8 +77,20 @@ export async function fetchAndEnrichStations(
 
   if (stations.length === 0) return [];
 
-  // 2. Synchronously check local cache to pre-populate stations instantly
-  //    This avoids massive UI re-renders if prices are already fetched locally.
+  // 2. Return stations immediately for fastest first paint.
+  //    Cache hydration + network enrichment continue asynchronously.
+  if (queryClient && queryKey) {
+    hydrateEagerPricesInBackground(stations, queryClient, queryKey).catch(() => {});
+  }
+
+  return stations;
+}
+
+async function hydrateEagerPricesInBackground(
+  stations: Station[],
+  queryClient: QueryClient,
+  queryKey: unknown[],
+): Promise<void> {
   const currency = getLocalCurrencyCode();
   const eagerGroup = stations.slice(0, EAGER_ENRICH_COUNT);
   const networkQueue: Station[] = [];
@@ -82,23 +99,24 @@ export async function fetchAndEnrichStations(
     eagerGroup.map(async (station) => {
       const cached = await peekLocalGeminiCache(station.name, station.address, currency);
       if (cached && cached.prices.length > 0) {
-        // Hydrate instantly
-        station.fuelPrices = cached.prices;
-        station.priceSource = cached.grounded ? 'gemini-grounded' : 'gemini';
-        station.priceAttribution = cached.attribution;
+        const priceSource = cached.grounded ? 'gemini-grounded' : 'gemini';
+        queryClient.setQueryData<Station[]>(queryKey, (prev) => {
+          if (!prev) return prev;
+          return prev.map((s) =>
+            s.id === station.id
+              ? { ...s, fuelPrices: cached.prices, priceSource, priceAttribution: cached.attribution }
+              : s
+          );
+        });
       } else {
-        // Needs fresh fetch
         networkQueue.push(station);
       }
     })
   );
 
-  // 3. Kick off background enrichment ONLY for stations not found in cache
-  if (queryClient && queryKey && networkQueue.length > 0) {
+  if (networkQueue.length > 0) {
     enrichInBackground(networkQueue, queryClient, queryKey);
   }
-
-  return stations;
 }
 
 /**

@@ -23,8 +23,9 @@ export function useStations({
     queryKey,
     queryFn: () => fetchAndEnrichStations(lat!, lon!, radius, queryClient, queryKey),
     enabled: enabled && lat != null && lon != null,
-    staleTime: 2 * 60 * 1000,   // 2 min
-    gcTime: 5 * 60 * 1000,       // 5 min
+    placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,   // 5 min
+    gcTime: 15 * 60 * 1000,     // 15 min
     retry: 2,
   });
 }

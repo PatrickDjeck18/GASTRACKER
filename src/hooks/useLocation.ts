@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 import type { Coordinates } from '../types/station';
+import { useAppStore } from '../store/useAppStore';
 
 interface UseLocationReturn {
   coords: Coordinates | null;
@@ -17,6 +18,7 @@ export function useLocation(): UseLocationReturn {
   const [coords, setCoords] = useState<Coordinates | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const setUserLocation = useAppStore((s) => s.setUserLocation);
 
   const fetchLocation = useCallback(async () => {
     try {
@@ -39,6 +41,7 @@ export function useLocation(): UseLocationReturn {
           latitude: knownLoc.coords.latitude,
           longitude: knownLoc.coords.longitude,
         });
+        setUserLocation(knownLoc.coords.latitude, knownLoc.coords.longitude);
         // We set loading false early so UI can show cached data quickly
         setLoading(false);
       }
@@ -52,6 +55,18 @@ export function useLocation(): UseLocationReturn {
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
       });
+
+      let countryCode: string | null = null;
+      try {
+        const rev = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+        countryCode = rev[0]?.isoCountryCode ?? null;
+      } catch {
+        // Reverse geocoding is best-effort only.
+      }
+      setUserLocation(loc.coords.latitude, loc.coords.longitude, countryCode);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : 'Failed to retrieve location.',
@@ -59,7 +74,7 @@ export function useLocation(): UseLocationReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setUserLocation]);
 
   useEffect(() => {
     void fetchLocation();

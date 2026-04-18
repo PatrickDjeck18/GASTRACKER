@@ -1,4 +1,5 @@
 import { Colors } from '../constants/theme';
+import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station, FuelPrice } from '../types/station';
 
 export type PriceTier = 'cheap' | 'medium' | 'expensive' | 'unknown';
@@ -90,7 +91,7 @@ export function bestPrice(
  * Falls back to a simple symbol+value if Intl is unavailable or currency is unknown.
  */
 export function formatPrice(price: number, currency?: string): string {
-  const code = (currency ?? 'EUR').toUpperCase();
+  const code = (currency ?? getLocalCurrencyCode() ?? 'EUR').toUpperCase();
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',

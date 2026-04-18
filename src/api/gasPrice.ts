@@ -7,6 +7,15 @@ import type { RegionalFuelPrice, GasPriceRegion } from '../types/gasPrice';
 const LOCAL_CACHE_PREFIX = '@gemini_regional_cache_v2_';
 const LOCAL_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours for local cache
 const GLOBAL_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours for Firebase cache
+const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes hot in-memory cache
+
+type MemoryCacheEntry = {
+  data: RegionalFuelPrice[];
+  timestamp: number;
+};
+
+const memoryCache = new Map<string, MemoryCacheEntry>();
+const inFlightRegionalRequests = new Map<string, Promise<RegionalFuelPrice[]>>();
 
 // Helper function to get local cache key
 function getLocalCacheKey(region: GasPriceRegion, currencyCode: string): string {
@@ -29,6 +38,17 @@ async function getLocalCachedResult<T>(cacheKey: string): Promise<T | null> {
     return parsed.data;
   } catch (error) {
     console.warn('[GeminiRegional] Failed to read local cache:', error);
+    return null;
+  }
+}
+
+async function getLocalCachedResultAllowExpired<T>(cacheKey: string): Promise<T | null> {
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (!cached) return null;
+    const parsed = JSON.parse(cached);
+    return parsed?.data ?? null;
+  } catch {
     return null;
   }
 }
@@ -113,14 +133,25 @@ export async function fetchRegionalPrices(region: GasPriceRegion, currencyCode: 
   const startTime = Date.now();
   const cacheKey = `regional_prices_v2_${region}_${currencyCode}`;
   const localCacheKey = getLocalCacheKey(region, currencyCode);
+  const requestKey = `${region}_${currencyCode}`.toLowerCase();
 
-  try {
+  const mem = memoryCache.get(requestKey);
+  if (mem && Date.now() - mem.timestamp < MEMORY_CACHE_TTL) {
+    return mem.data;
+  }
+
+  const pending = inFlightRegionalRequests.get(requestKey);
+  if (pending) return pending;
+
+  const request = (async () => {
+    try {
     // 1. Check local AsyncStorage cache first (6 hour TTL)
     const localCached = await getLocalCachedResult<unknown>(localCacheKey);
     const normalizedLocal = normalizeRegionalResults(localCached, region, currencyCode);
     if (normalizedLocal.length > 0) {
       const duration = Date.now() - startTime;
       console.log(`[GeminiRegional] Returning local cached result for ${region} in ${currencyCode} (${normalizedLocal.length} items, ${duration}ms)`);
+      memoryCache.set(requestKey, { data: normalizedLocal, timestamp: Date.now() });
       return normalizedLocal;
     }
 
@@ -133,6 +164,7 @@ export async function fetchRegionalPrices(region: GasPriceRegion, currencyCode: 
 
       // Also save to local cache for faster access next time
       await setLocalCachedResult(localCacheKey, normalizedGlobal);
+      memoryCache.set(requestKey, { data: normalizedGlobal, timestamp: Date.now() });
       return normalizedGlobal;
     }
 
@@ -160,6 +192,7 @@ export async function fetchRegionalPrices(region: GasPriceRegion, currencyCode: 
             setLocalCachedResult(localCacheKey, normalized),
             saveApiResponseCache('gemini/regional-prices', cacheKey, normalized, GLOBAL_CACHE_TTL)
           ]);
+          memoryCache.set(requestKey, { data: normalized, timestamp: Date.now() });
 
           const duration = Date.now() - startTime;
           console.log(`[GeminiRegional] Fetched ${normalized.length} items for ${region} in ${currencyCode} (${duration}ms, attempt ${attempt})`);
@@ -179,13 +212,31 @@ export async function fetchRegionalPrices(region: GasPriceRegion, currencyCode: 
       }
     }
 
-    // All attempts failed
+    // All attempts failed: fall back to stale local cache to avoid empty UI.
+    const staleLocal = await getLocalCachedResultAllowExpired<unknown>(localCacheKey);
+    const normalizedStale = normalizeRegionalResults(staleLocal, region, currencyCode);
+    if (normalizedStale.length > 0) {
+      console.warn(
+        `[GeminiRegional] Network failed for ${region} (${currencyCode}), using stale local cache (${normalizedStale.length} items)`,
+      );
+      memoryCache.set(requestKey, { data: normalizedStale, timestamp: Date.now() });
+      return normalizedStale;
+    }
+
     console.error('[GeminiRegional] All fetch attempts failed:', lastError?.message);
     return [];
 
   } catch (err) {
     console.error('[GeminiRegional] Unexpected error fetching regional prices:', err);
     return [];
+  }
+  })();
+
+  inFlightRegionalRequests.set(requestKey, request);
+  try {
+    return await request;
+  } finally {
+    inFlightRegionalRequests.delete(requestKey);
   }
 }
 

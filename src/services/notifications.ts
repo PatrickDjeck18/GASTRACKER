@@ -11,8 +11,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BACKGROUND_TASK_NAME = 'CHEAP_FUEL_ALERT_TASK';
 const PRICE_ALERT_KEY = '@fuel_price_alert';
 const LAST_NOTIF_KEY = '@fuel_last_notification';
+const LAST_WEEKLY_SUMMARY_KEY = '@fuel_last_weekly_summary';
 const MIN_NOTIF_INTERVAL_MS = 30 * 60 * 1000; // 30 min between notifications
 const ALERT_SEARCH_RADIUS = 5000; // 5 km
+const QUIET_HOURS_START = 22; // 10 PM
+const QUIET_HOURS_END = 6;    // 6 AM
 
 /* ── Notification channel setup ─────────────────────── */
 
@@ -33,6 +36,16 @@ export interface PriceAlert {
   targetPrice: number;     // target price per unit (e.g. 1.50 EUR/L)
   currency: string;        // e.g. 'EUR'
   fuelType: string | null; // fuel type filter or null for any
+}
+
+interface SavedCalcLike {
+  date: number;
+  net: number;
+}
+
+function isQuietHours(now = new Date()): boolean {
+  const h = now.getHours();
+  return h >= QUIET_HOURS_START || h < QUIET_HOURS_END;
 }
 
 const DEFAULT_ALERT: PriceAlert = {
@@ -91,6 +104,8 @@ export async function sendCheapFuelNotification(
   fuelType: string,
   distance: number,
 ): Promise<void> {
+  if (isQuietHours()) return;
+
   // Throttle: don't send more than once per MIN_NOTIF_INTERVAL
   const lastNotif = await AsyncStorage.getItem(LAST_NOTIF_KEY);
   if (lastNotif) {
@@ -117,6 +132,63 @@ export async function sendCheapFuelNotification(
     // Handle "activity no longer available" error gracefully
     console.warn('[FuelAlert] Failed to send notification:', error);
     // Don't re-throw - this is expected when app is in background/closed
+  }
+}
+
+/**
+ * Send a weekly savings summary notification at most once per week.
+ * Uses local time and avoids night-time delivery.
+ */
+export async function maybeSendWeeklySavingsSummary(
+  savedCalculations: SavedCalcLike[],
+  currency: string,
+): Promise<void> {
+  if (!savedCalculations.length || isQuietHours()) return;
+
+  const hasPermission = await requestNotificationPermission();
+  if (!hasPermission) return;
+  await setupNotificationChannel();
+
+  const now = new Date();
+  const day = now.getDay(); // Sun=0 ... Sat=6
+  const hour = now.getHours();
+  const isPreferredWindow = (day === 0 || day === 1) && hour >= 18 && hour <= 21;
+  if (!isPreferredWindow) return;
+
+  const lastSummary = await AsyncStorage.getItem(LAST_WEEKLY_SUMMARY_KEY);
+  if (lastSummary) {
+    const elapsed = Date.now() - parseInt(lastSummary, 10);
+    if (elapsed < 6 * 24 * 60 * 60 * 1000) return; // ~once per week
+  }
+
+  const weekStart = new Date(now);
+  const mondayOffset = day === 0 ? 6 : day - 1;
+  weekStart.setDate(now.getDate() - mondayOffset);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekStartTs = weekStart.getTime();
+
+  const weekEntries = savedCalculations.filter((c) => c.date >= weekStartTs);
+  if (!weekEntries.length) return;
+
+  const totalNet = weekEntries.reduce((acc, c) => acc + c.net, 0);
+  if (totalNet <= 0) return;
+
+  const sym = currencySymbol(currency);
+  const fills = weekEntries.length;
+
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '📈 Weekly Fuel Savings',
+        body: `You saved about ${sym}${totalNet.toFixed(2)} across ${fills} fill-up${fills > 1 ? 's' : ''} this week.`,
+        data: { type: 'weekly_savings', totalNet, fills, currency },
+        ...(Platform.OS === 'android' && { channelId: 'fuel-alerts' }),
+      },
+      trigger: null,
+    });
+    await AsyncStorage.setItem(LAST_WEEKLY_SUMMARY_KEY, String(Date.now()));
+  } catch (error) {
+    console.warn('[FuelAlert] Weekly summary notification failed:', error);
   }
 }
 

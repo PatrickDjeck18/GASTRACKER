@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { navigate } from '../navigation/navigationRef';
+import { useAppStore } from '../store/useAppStore';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -30,6 +32,47 @@ export const useNotifications = () => {
     };
 
     setupNotifications();
+
+    const handleNotificationTap = (response: Notifications.NotificationResponse) => {
+      const data = (response.notification.request.content.data || {}) as Record<string, unknown>;
+      const type = String(data.type || '');
+      const screen = String(data.screen || '');
+
+      if (type === 'weekly_savings') {
+        navigate('SavingsTab');
+        return;
+      }
+
+      if (type === 'cheap_fuel') {
+        const stationName = String(data.stationName || '').trim().toLowerCase();
+        if (stationName) {
+          const { stations, setSelectedStation } = useAppStore.getState();
+          const match = stations.find((s) => {
+            const a = (s.brand ?? '').trim().toLowerCase();
+            const b = s.name.trim().toLowerCase();
+            return a === stationName || b === stationName;
+          });
+          if (match) setSelectedStation(match.id);
+        }
+        navigate('MapTab');
+        return;
+      }
+
+      if (screen === 'Map') {
+        navigate('MapTab');
+      }
+    };
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleNotificationTap);
+    Notifications.getLastNotificationResponseAsync()
+      .then((last) => {
+        if (last) handleNotificationTap(last);
+      })
+      .catch(() => {});
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 };
 

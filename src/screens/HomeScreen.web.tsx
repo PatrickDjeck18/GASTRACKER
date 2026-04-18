@@ -25,7 +25,12 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const isDark = useIsDark();
   const thm = isDark ? Colors.dark : Colors.light;
-  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
+  const countryCode = useAppStore((s) => s.countryCode);
+  const manualCurrency = useAppStore((s) => s.manualCurrency);
+  const localCurrency = useMemo(
+    () => getLocalCurrencyCode(),
+    [countryCode, manualCurrency],
+  );
 
   const { coords, loading: locLoading, error: locError, refresh: reLocate } = useLocation();
 

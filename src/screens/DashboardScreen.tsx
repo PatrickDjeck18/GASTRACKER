@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, {
@@ -15,6 +15,7 @@ import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { bestPrice, formatPrice, getPriceTier, tierColor } from '../utils/price';
 import { formatDistance } from '../utils/geo';
 import { getLocalCurrencyCode } from '../services/fuelPriceService';
+import * as notificationService from '../services/notifications';
 import type { Station } from '../types/station';
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -222,7 +223,12 @@ export default function DashboardScreen() {
   const thm = isDark ? Colors.dark : Colors.light;
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<any>>();
-  const localCurrency = useMemo(() => getLocalCurrencyCode(), []);
+  const countryCode = useAppStore((s) => s.countryCode);
+  const manualCurrency = useAppStore((s) => s.manualCurrency);
+  const localCurrency = useMemo(
+    () => getLocalCurrencyCode(),
+    [countryCode, manualCurrency],
+  );
 
   /* ── data ─── */
   const { coords } = useLocation();
@@ -230,6 +236,16 @@ export default function DashboardScreen() {
   const fuelFilter = useAppStore((s) => s.filters.fuelType);
   const searchRadius = useAppStore((s) => s.searchRadius);
   const setSelectedStation = useAppStore((s) => s.setSelectedStation);
+  const savedCalculations = useAppStore((s) => s.savedCalculations);
+  const retention = useAppStore((s) => s.retention ?? {
+    lastOpenDate: null,
+    lastOpenAt: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    totalSessions: 0,
+    weeklySavingsGoal: 25,
+  });
+  const trackAppOpen = useAppStore((s) => s.trackAppOpen);
 
   const { data: stations = [], isLoading, isRefetching, refetch } = useStations({
     lat: coords?.latitude,
@@ -257,6 +273,68 @@ export default function DashboardScreen() {
     ? (allPrices.reduce((a, b) => a + b, 0) / allPrices.length)
     : null;
   const greeting = getGreeting();
+  const thisWeekStart = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay(); // Sunday = 0
+    const mondayOffset = day === 0 ? 6 : day - 1;
+    const start = new Date(now);
+    start.setDate(now.getDate() - mondayOffset);
+    start.setHours(0, 0, 0, 0);
+    return start.getTime();
+  }, []);
+
+  const weeklyNetSavings = useMemo(
+    () =>
+      savedCalculations
+        .filter((c) => c.date >= thisWeekStart)
+        .reduce((acc, c) => acc + c.net, 0),
+    [savedCalculations, thisWeekStart],
+  );
+
+  const weeklyGoal = retention.weeklySavingsGoal;
+  const weeklyProgress = Math.max(0, Math.min(1, weeklyNetSavings / weeklyGoal));
+
+  const bestOverall = useMemo(() => {
+    const candidates = stations
+      .map((s) => ({ station: s, best: bestPrice(s, fuelFilter) }))
+      .filter((x): x is { station: Station; best: NonNullable<ReturnType<typeof bestPrice>> } => !!x.best);
+
+    if (candidates.length === 0) return null;
+
+    const prices = candidates.map((c) => c.best.price);
+    const dists = candidates.map((c) => c.station.distance);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const minDist = Math.min(...dists);
+    const maxDist = Math.max(...dists);
+
+    const score = (price: number, distance: number) => {
+      const pNorm = maxPrice === minPrice ? 0 : (price - minPrice) / (maxPrice - minPrice);
+      const dNorm = maxDist === minDist ? 0 : (distance - minDist) / (maxDist - minDist);
+      return pNorm * 0.7 + dNorm * 0.3;
+    };
+
+    return [...candidates].sort(
+      (a, b) => score(a.best.price, a.station.distance) - score(b.best.price, b.station.distance),
+    )[0];
+  }, [stations, fuelFilter]);
+
+  const bestOverallSaving = useMemo(() => {
+    if (!bestOverall || avgPrice == null) return null;
+    return Math.max(0, avgPrice - bestOverall.best.price);
+  }, [bestOverall, avgPrice]);
+
+  useEffect(() => {
+    trackAppOpen();
+  }, [trackAppOpen]);
+
+  useEffect(() => {
+    if (typeof notificationService.maybeSendWeeklySavingsSummary === 'function') {
+      notificationService
+        .maybeSendWeeklySavingsSummary(savedCalculations, localCurrency)
+        .catch(() => {});
+    }
+  }, [savedCalculations, localCurrency]);
 
   /* ── handlers ─── */
   const goToStation = useCallback((id: string) => {
@@ -333,6 +411,34 @@ export default function DashboardScreen() {
               delay={350}
             />
           </View>
+
+          {/* ── Retention strip ── */}
+          <Animated.View
+            entering={FadeInDown.delay(420).springify()}
+            style={[ds.retentionCard, { backgroundColor: thm.card, borderColor: thm.cardBorder }]}
+          >
+            <View style={ds.retentionLeft}>
+              <View style={[ds.retentionIcon, { backgroundColor: Colors.primary + '14' }]}>
+                <MaterialCommunityIcons name="fire" size={16} color={Colors.primary} />
+              </View>
+              <View>
+                <Text style={[ds.retentionTitle, { color: thm.text }]}>
+                  {retention.currentStreak} day streak
+                </Text>
+                <Text style={[ds.retentionSub, { color: thm.textMuted }]}>
+                  {retention.totalSessions} sessions • best {retention.longestStreak} days
+                </Text>
+              </View>
+            </View>
+            <View style={ds.goalWrap}>
+              <Text style={[ds.goalLabel, { color: thm.textMuted }]}>
+                {formatPrice(weeklyNetSavings, localCurrency)} / {formatPrice(weeklyGoal, localCurrency)}
+              </Text>
+              <View style={[ds.goalBarBg, { backgroundColor: thm.surfaceElevated }]}>
+                <View style={[ds.goalBarFill, { width: `${weeklyProgress * 100}%` }]} />
+              </View>
+            </View>
+          </Animated.View>
         </View>
 
         {/* ══════ CONTENT ══════ */}
@@ -399,6 +505,36 @@ export default function DashboardScreen() {
               </View>
             </TouchableOpacity>
           </Animated.View>
+
+          {bestOverall ? (
+            <AnimatedTouchable
+              entering={FadeInDown.delay(520).springify()}
+              style={[ds.bestCard, { backgroundColor: Colors.price.cheapBg, borderColor: Colors.price.cheapBorder }]}
+              onPress={() => goToStation(bestOverall.station.id)}
+              activeOpacity={0.85}
+            >
+              <View style={ds.bestLeft}>
+                <View style={ds.bestBadge}>
+                  <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.price.cheap} />
+                  <Text style={ds.bestBadgeTxt}>Best overall</Text>
+                </View>
+                <Text style={[ds.bestName, { color: thm.text }]} numberOfLines={1}>
+                  {bestOverall.station.brand ?? bestOverall.station.name}
+                </Text>
+                <Text style={[ds.bestMeta, { color: thm.textSecondary }]} numberOfLines={1}>
+                  {formatDistance(bestOverall.station.distance)} • {bestOverall.best.fuelType}
+                </Text>
+              </View>
+              <View style={ds.bestRight}>
+                <Text style={ds.bestPrice}>{formatPrice(bestOverall.best.price, localCurrency)}</Text>
+                {bestOverallSaving != null ? (
+                  <Text style={ds.bestSaving}>
+                    Save ~{formatPrice(bestOverallSaving, localCurrency)}/L
+                  </Text>
+                ) : null}
+              </View>
+            </AnimatedTouchable>
+          ) : null}
 
           {isLoading ? (
             <Animated.View entering={FadeIn.delay(400)}>
@@ -549,6 +685,54 @@ const ds = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
+  retentionCard: {
+    marginTop: Spacing.md,
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+    ...Shadows.sm,
+  },
+  retentionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  retentionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  retentionTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  retentionSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  goalWrap: {
+    gap: 6,
+  },
+  goalLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  goalBarBg: {
+    width: '100%',
+    height: 7,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  goalBarFill: {
+    height: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 999,
+  },
 
   /* Content */
   content: {
@@ -578,6 +762,63 @@ const ds = StyleSheet.create({
   viewAllTxt: {
     fontSize: FontSize.sm,
     fontWeight: '700',
+  },
+  bestCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  bestLeft: {
+    flex: 1,
+  },
+  bestBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    borderRadius: Radii.full,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    marginBottom: 6,
+  },
+  bestBadgeTxt: {
+    color: Colors.price.cheap,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  bestName: {
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  bestMeta: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 3,
+  },
+  bestRight: {
+    alignItems: 'flex-end',
+    marginLeft: Spacing.sm,
+  },
+  bestPrice: {
+    fontSize: FontSize.md,
+    fontWeight: '900',
+    color: Colors.price.cheap,
+    letterSpacing: -0.3,
+  },
+  bestSaving: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.price.cheap,
   },
 
   /* Quick Actions */
