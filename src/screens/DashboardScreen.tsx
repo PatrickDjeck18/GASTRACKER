@@ -17,6 +17,7 @@ import { formatDistance } from '../utils/geo';
 import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import * as notificationService from '../services/notifications';
 import type { Station } from '../types/station';
+import { NativeAd } from '../components/NativeAd';
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 /* ── Time-aware greeting ────────────────────────────── */
@@ -505,6 +506,8 @@ export default function DashboardScreen() {
               </View>
             </TouchableOpacity>
           </Animated.View>
+
+          <NativeAd />
 
           {bestOverall ? (
             <AnimatedTouchable

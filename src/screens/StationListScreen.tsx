@@ -1,203 +1,146 @@
-import React, { useMemo, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { useLocation } from '../hooks/useLocation';
-import { useStations } from '../hooks/useStations';
-import { useIsDark } from '../hooks/useIsDark';
-import { useAppStore } from '../store/useAppStore';
-
-import { StationCard } from '../components/StationCard';
-import { SortToggle } from '../components/SortToggle';
-import { StationDetailModal } from '../components/StationDetailModal';
-import { StationListSkeleton } from '../components/SkeletonLoader';
-import { EmptyState } from '../components/EmptyState';
-
-
-import { bestPrice } from '../utils/price';
-import { Colors, Spacing, FontSize, Radii, Shadows } from '../constants/theme';
-import type { Station } from '../types/station';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
+import { useStations } from '../hooks/useStations';
+import { useLocation } from '../hooks/useLocation';
+import { useAppStore } from '../store/useAppStore';
+import { useIsDark } from '../hooks/useIsDark';
+import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
+import { StationCard } from '../components/StationCard';
+import { NativeAd } from '../components/NativeAd';
+import { bestPrice } from '../utils/price';
+import { EmptyState } from '../components/EmptyState';
 
 export default function StationListScreen() {
   const isDark = useIsDark();
   const thm = isDark ? Colors.dark : Colors.light;
-  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-
-  /* ── location ─── */
+  
   const { coords } = useLocation();
-
-  /* ── store ─── */
-  const sortMode = useAppStore((s) => s.sortMode);
-  const setSortMode = useAppStore((s) => s.setSortMode);
-  const fuelFilter = useAppStore((s) => s.filters.fuelType);
   const searchRadius = useAppStore((s) => s.searchRadius);
-  const selectedId = useAppStore((s) => s.selectedStationId);
+  const fuelFilter = useAppStore((s) => s.filters.fuelType);
   const setSelectedStation = useAppStore((s) => s.setSelectedStation);
+  const locationName = useAppStore((s) => s.locationName);
 
-  /* ── data ─── */
-  const stationsQueryKey = ['stations', coords?.latitude, coords?.longitude, searchRadius];
-  const {
-    data: stations = [],
-    isLoading,
-    refetch,
-    isRefetching,
-  } = useStations({
+  const { data: stations = [], isLoading, isRefetching, refetch } = useStations({
     lat: coords?.latitude,
     lon: coords?.longitude,
     radius: searchRadius,
     enabled: !!coords,
   });
 
-  /* ── derived ─── */
   const allPrices = useMemo(
-    () =>
-      stations
-        .map((s) => bestPrice(s, fuelFilter)?.price)
-        .filter((p): p is number => p != null),
-    [stations, fuelFilter],
+    () => stations.map((s) => bestPrice(s, fuelFilter)?.price).filter(Boolean) as number[],
+    [stations, fuelFilter]
   );
 
-  const sorted = useMemo(() => {
-    const list = [...stations];
-    if (sortMode === 'price') {
-      list.sort((a, b) => {
-        const pa = bestPrice(a, fuelFilter)?.price ?? Infinity;
-        const pb = bestPrice(b, fuelFilter)?.price ?? Infinity;
-        return pa - pb;
-      });
-    } else {
-      list.sort((a, b) => a.distance - b.distance);
+  const dataWithAds = useMemo(() => {
+    if (stations.length === 0) return [];
+    
+    const result: any[] = [];
+    stations.forEach((station, index) => {
+      result.push({ type: 'station', data: station });
+      if ((index + 1) % 5 === 0) {
+        result.push({ type: 'ad', id: `ad-${index}` });
+      }
+    });
+    return result;
+  }, [stations]);
+
+  const renderItem = ({ item }: { item: any }) => {
+    if (item.type === 'ad') {
+      return <NativeAd variant="compact" />;
     }
-    return list;
-  }, [stations, sortMode, fuelFilter]);
-
-  const selectedStation = useMemo(
-    () => (selectedId ? stations.find((s) => s.id === selectedId) ?? null : null),
-    [selectedId, stations],
-  );
-
-  /* ── render item ─── */
-  const renderStation = useCallback(
-    ({ item }: { item: Station }) => (
+    
+    return (
       <StationCard
-        station={item}
+        station={item.data}
         allPrices={allPrices}
         fuelFilter={fuelFilter}
-        onPress={() => setSelectedStation(item.id)}
+        onPress={() => setSelectedStation(item.data.id)}
       />
-    ),
-    [allPrices, fuelFilter, setSelectedStation],
-  );
+    );
+  };
 
-  /* ── body ─── */
-  if (isLoading) {
+  if (isLoading && !isRefetching) {
     return (
-      <View style={[styles.flex, { backgroundColor: thm.background }]}>
-        <StationListSkeleton count={6} />
+      <View style={[styles.center, { backgroundColor: thm.background }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.flex, { backgroundColor: thm.background }]}>
-      {/* Search Header Info */}
-      <View style={[styles.headerContainer, { backgroundColor: thm.surfaceElevated, borderBottomColor: thm.border, paddingTop: Math.max(insets.top, Spacing.lg) }]}>
-        <View style={styles.headerTop}>
-          <View style={styles.titleWrap}>
-            <Text style={[styles.pageTitle, { color: thm.text }]}>Nearby Stations</Text>
-            <View style={[styles.badge, { backgroundColor: Colors.primaryGlow }]}>
-              <Text style={[styles.badgeText, { color: Colors.primary }]}>{stations.length}</Text>
-            </View>
-          </View>
-          <MaterialCommunityIcons name="gas-station-outline" size={32} color={Colors.primary} />
+    <View style={[styles.container, { backgroundColor: thm.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.md, backgroundColor: isDark ? Colors.dark.surfaceElevated : Colors.light.surfaceElevated }]}>
+        <View style={styles.headerTitleRow}>
+            <MaterialCommunityIcons name="format-list-bulleted" size={24} color={Colors.primary} />
+            <Text style={[styles.title, { color: thm.text }]}>Station List</Text>
         </View>
-
-        <View style={styles.sortBar}>
-          <SortToggle value={sortMode} onChange={setSortMode} />
-        </View>
+        <Text style={[styles.subtitle, { color: thm.textSecondary }]}>
+          {locationName ? `Nearby ${locationName}` : 'Finding stations nearby…'}
+        </Text>
       </View>
 
-      {sorted.length === 0 ? (
-        <EmptyState
-          title="No stations found"
-          subtitle="Try increasing your search radius or move the map to a different area."
-          icon="gas-station-off-outline"
-          actionLabel="Retry Search"
-          onAction={() => refetch()}
-        />
-      ) : (
-        <FlatList
-          data={sorted}
-          keyExtractor={(s) => s.id}
-          renderItem={renderStation}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={() => refetch()}
-              tintColor={Colors.primary}
-              colors={[Colors.primary]}
-            />
-          }
-        />
-      )}
-
-      {selectedStation && (
-        <StationDetailModal
-          station={selectedStation}
-          allPrices={allPrices}
-          userCoords={coords}
-          onClose={() => setSelectedStation(null)}
-          stationsQueryKey={stationsQueryKey}
-        />
-      )}
+      <FlatList
+        data={dataWithAds}
+        keyExtractor={(item, index) => item.type === 'ad' ? item.id : item.data.id}
+        renderItem={renderItem}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
+        ListEmptyComponent={
+          <EmptyState
+            icon="gas-station-off"
+            title="No Stations Found"
+            actionLabel="Refresh"
+            onAction={refetch}
+          />
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  headerContainer: {
+  container: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.lg,
-    borderBottomWidth: 1,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  titleWrap: {
+  headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 10,
   },
-  pageTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: '800',
+  title: {
+    fontSize: FontSize.xl,
+    fontWeight: '900',
     letterSpacing: -0.5,
   },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radii.full,
-  },
-  badgeText: {
+  subtitle: {
     fontSize: FontSize.sm,
-    fontWeight: '800',
+    marginTop: 2,
+    fontWeight: '500',
   },
-  sortBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  list: {
+  listContent: {
     padding: Spacing.lg,
-    paddingBottom: 40,
   },
 });

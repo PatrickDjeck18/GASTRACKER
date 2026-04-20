@@ -18,6 +18,7 @@ import './src/i18n/index';
 import { useAppStore } from './src/store/useAppStore';
 import { useRateApp } from './src/hooks/useRateApp';
 import { useNotifications } from './src/hooks/useNotifications';
+import { useInterstitialAd } from './src/hooks/useInterstitialAd';
 import { Colors } from './src/constants/theme';
 
 // Enable gesture handler web support
@@ -78,6 +79,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 export default function App() {
   useRateApp();
   useNotifications();
+  useInterstitialAd();
   
   useEffect(() => {
     void initAdMob();

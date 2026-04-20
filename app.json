@@ -2,7 +2,7 @@
   "expo": {
     "name": "Cheap Fuel Price Global",
     "slug": "cheap-fuel-global",
-    "version": "1.0.11",
+    "version": "1.0.13",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -10,6 +10,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "updates": {
+      "url": "https://u.expo.dev/198af9cf-d487-418f-9bda-de41144d64c1"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -18,7 +21,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "cheap.fuel.price.global",
-      "buildNumber": "13",
+      "buildNumber": "15",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Fuel Price New uses your location to show nearby fuel stations and find the lowest prices. Location is not stored on our servers.",
@@ -119,7 +122,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.fuel.price.global",
-      "versionCode": 14,
+      "versionCode": 16,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -170,9 +173,9 @@
       "firebaseFunctionsBaseUrl": "",
       "firebaseFunctionsRequireAuth": "false",
       "eas": {
-        "projectId": "558fa8f6-a21c-405d-9066-cc9775778f0c"
+        "projectId": "198af9cf-d487-418f-9bda-de41144d64c1"
       }
     },
-    "owner": "goodtech18"
+    "owner": "denise18"
   }
 }

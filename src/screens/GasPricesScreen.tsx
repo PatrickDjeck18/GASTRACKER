@@ -12,6 +12,7 @@ import { useGasPrices } from '../hooks/useGasPrices';
 import { useIsDark } from '../hooks/useIsDark';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import type { GasPriceRegion, RegionalFuelPrice } from '../types/gasPrice';
+import { NativeAd } from '../components/NativeAd';
 
 /* ── Constants ─────────────────────────────────────── */
 type SortKey = 'name' | 'gasoline' | 'diesel';
@@ -74,18 +75,22 @@ function getFlag(name: string, region: GasPriceRegion): string {
 }
 
 /* ── Helpers ───────────────────────────────────────── */
-function formatCurrency(val: number | null, currency: string): string {
+function formatLocalCurrency(val: number | null, localCurrency: string): string {
   if (val == null) return '—';
+  const code = localCurrency?.toUpperCase() ?? 'EUR';
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
-      currency: currency,
+      currency: code,
       minimumFractionDigits: 2,
       maximumFractionDigits: 3,
     }).format(val);
   } catch (e) {
-    // Fallback if Intl fails or currency code is invalid
-    const sym = currency === 'USD' ? '$' : currency === 'CAD' ? 'CA$' : currency === 'EUR' ? '€' : currency;
+    const symMap: Record<string, string> = {
+      EUR: '€', USD: '$', GBP: '£', CHF: 'CHF ', PLN: 'zł',
+      CAD: 'CA$', AUD: 'A$', NZD: 'NZ$', JPY: '¥', GBP: '£',
+    };
+    const sym = symMap[code] ?? code + ' ';
     return `${sym}${val.toFixed(3)}`;
   }
 }
@@ -108,10 +113,11 @@ function getVal(item: RegionalFuelPrice, fuelTab: FuelTab): number | null {
    PRICE CARD
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 function PriceCard({
-  item, rank, fuelTab, allPrices, isDark, region,
+  item, rank, fuelTab, allPrices, isDark, region, userCurrency,
 }: {
   item: RegionalFuelPrice; rank: number; fuelTab: FuelTab;
   allPrices: number[]; isDark: boolean; region: GasPriceRegion;
+  userCurrency: string;
 }) {
   const val = getVal(item, fuelTab);
   const tierColor = getPriceTierColor(val, allPrices);
@@ -149,7 +155,7 @@ function PriceCard({
             {item.name}
           </Text>
           <Text style={[s.currencyLabel, { color: thm.textMuted }]}>
-            {item.currency}/L
+            {userCurrency}/L
           </Text>
         </View>
       </View>
@@ -157,7 +163,7 @@ function PriceCard({
       {/* Price */}
       <View style={s.priceBlock}>
         <Text style={[s.priceVal, { color: val != null ? tierColor : thm.textMuted }]}>
-          {formatCurrency(val, item.currency)}
+          {formatLocalCurrency(val, userCurrency)}
         </Text>
         {val != null && (
           <View style={[s.pricePill, { backgroundColor: tierColor + '18' }]}>
@@ -399,7 +405,7 @@ export default function GasPricesScreen() {
             <View key={st.label} style={[s.statCard, { backgroundColor: isDark ? Colors.dark.surfaceHighlight : Colors.light.surfaceHighlight, borderColor: st.color + '30' }]}>
               <Text style={[s.statLabel, { color: thm.textMuted }]}>{st.label}</Text>
               <Text style={[s.statVal, { color: st.color }]}>
-                {st.val != null ? formatCurrency(st.val, prices[0]?.currency || userCurrency) : '—'}
+                {st.val != null ? formatLocalCurrency(st.val, userCurrency) : '—'}
               </Text>
             </View>
           ))}
@@ -466,6 +472,7 @@ export default function GasPricesScreen() {
               colors={[Colors.primary]}
             />
           }
+          ListHeaderComponent={<NativeAd variant="compact" />}
           renderItem={({ item, index }) => (
             <PriceCard
               item={item}
@@ -474,6 +481,7 @@ export default function GasPricesScreen() {
               allPrices={allPrices}
               isDark={isDark}
               region={region}
+              userCurrency={userCurrency}
             />
           )}
           ListEmptyComponent={

@@ -49,7 +49,10 @@
         "FIREBASE_APP_ID": "1:64993832802:web:bec8a2c37d8dc18a7e463b",
         "FIREBASE_MEASUREMENT_ID": "G-EP5QNBNPWZ",
         "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net",
-        "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc"
+        "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc",
+        "ANDROID_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/9009007389",
+        "IOS_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/6718932147",
+        "DEEPSEEK_API_KEY": "sk-1a019e37553a482b8f0555719be623f5"
       }
     },
     "production": {
@@ -77,7 +80,10 @@
         "FIREBASE_APP_ID": "1:64993832802:web:bec8a2c37d8dc18a7e463b",
         "FIREBASE_MEASUREMENT_ID": "G-EP5QNBNPWZ",
         "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net",
-        "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc"
+        "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc",
+        "ANDROID_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/9009007389",
+        "IOS_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/6718932147",
+        "DEEPSEEK_API_KEY": "sk-1a019e37553a482b8f0555719be623f5"
       }
     }
   },

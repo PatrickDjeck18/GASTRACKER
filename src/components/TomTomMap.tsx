@@ -159,7 +159,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
   }
 
   function sym(c){
-    var m={EUR:'\u20ac',USD:'$',GBP:'\u00a3',ZAR:'R',BRL:'R$',CAD:'C$',AUD:'A$',CHF:'CHF ',PLN:'z\u0142',TRY:'\u20ba'};
+    var m={EUR:'\u20ac',USD:'$',GBP:'\u00a3',ZAR:'R',BRL:'R$',CAD:'C$',AUD:'A$',CHF:'CHF ',PLN:'z\u0142',TRY:'\u20ba',INR:'\u20b9',JPY:'\u00a5',CNY:'\u00a5',KRW:'\u20a9',MXN:'MX$',RUB:'\u20bd',UAH:'\u20b4',NOK:'kr',SEK:'kr',DKK:'kr',CZK:'K\u010d',HUF:'Ft',RON:'lei',BGN:'\u043b\u0432',NZD:'NZ$',SGD:'S$',HKD:'HK$',THB:'\u0e3f',MYR:'RM',IDR:'Rp',PHP:'\u20b1',VND:'\u20ab',ZMW:'ZK',EGP:'\u00a3',MAD:'MAD',AED:'\u062f.\u0625',SAR:'\u0631.\u0633',QAR:'QR',KWD:'KD',BHD:'BD',OMR:'OMR',JOD:'JD',LBP:'LBP',NGN:'\u20a6',KES:'KSh',GHS:'\u20b5',TZS:'TSh',UGX:'USh',RWF:'RF'};
     var code = (c||defaultCurrency||'EUR').toUpperCase();
     return m[code] || (code+' ');
   }

@@ -187,7 +187,7 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
 
       const client = new GoogleGenerativeAI(key);
       const model = client.getGenerativeModel({
-        model: 'gemini-3.1-flash-lite-preview',
+        model: 'gemini-2.0-flash-lite-preview-02-05',
         tools: [{ googleSearch: {} }],
         generationConfig: { responseMimeType: 'application/json' }
       });
@@ -238,7 +238,7 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
 
       const client = new GoogleGenerativeAI(key);
       const model = client.getGenerativeModel({
-        model: 'gemini-3.1-flash-lite-preview',
+        model: 'gemini-2.0-flash-lite-preview-02-05',
         generationConfig: { responseMimeType: 'application/json' }
       });
 

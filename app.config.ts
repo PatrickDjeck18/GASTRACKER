@@ -16,10 +16,9 @@ const withDefaultCFBundleDisplayName = (config: ExpoConfig) => {
 const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ...config,
     name: config.name || 'Cheap Fuel Price Global',
-    owner: 'goodtech18',
     slug: config.slug || 'cheap-fuel-global',
 
-    version: config.version || '1.0.10',
+    version: config.version || '1.0.13',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
     userInterfaceStyle: config.userInterfaceStyle || 'automatic',
@@ -32,7 +31,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ios: {
         supportsTablet: true,
         bundleIdentifier: 'cheap.fuel.price.global',
-        buildNumber: config.ios?.buildNumber || '12',
+        buildNumber: config.ios?.buildNumber || '15',
         infoPlist: {
             ITSAppUsesNonExemptEncryption: false,
             NSLocationWhenInUseUsageDescription:
@@ -60,7 +59,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             backgroundColor: '#0d47a1',
         },
         package: 'com.fuel.price.global',
-        versionCode: config.android?.versionCode || 13,
+        versionCode: config.android?.versionCode || 16,
         permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS'],
     },
     web: {
@@ -102,6 +101,8 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
         firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID ?? config.extra?.firebaseMeasurementId ?? '',
         firebaseFunctionsBaseUrl: process.env.FIREBASE_FUNCTIONS_BASE_URL ?? config.extra?.firebaseFunctionsBaseUrl ?? '',
         firebaseFunctionsRequireAuth: process.env.FIREBASE_FUNCTIONS_REQUIRE_AUTH ?? config.extra?.firebaseFunctionsRequireAuth ?? 'false',
+        admobNativeAndroidId: process.env.ANDROID_ADMOB_NATIVE_ID ?? '',
+        admobNativeIosId: process.env.IOS_ADMOB_NATIVE_ID ?? '',
     },
 });
 
