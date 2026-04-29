@@ -6,3 +6,8 @@ web-build/
 .git/
 android/
 ios/
+*.log
+*.bak
+scratch/
+.kilo/
+package.json.J56AaoTK*

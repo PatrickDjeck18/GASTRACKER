@@ -43,6 +43,10 @@ yarn-error.*
 
 # temp build directory for EAS
 .extratemp/
+*.log
+*.bak
+scratch/
+.kilo/
 
 # stray editor/backup copies of package.json
 package.json.J56AaoTK*
