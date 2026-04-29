@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useInterstitialAd } from '../hooks/useInterstitialAd';
 import {
   View,
   Text,
@@ -41,6 +42,7 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
   const t = isDark ? Colors.dark : Colors.light;
   const { t: tr } = useTranslation();
   const enrichStation = useEnrichStation();
+  const { maybeShowAd } = useInterstitialAd();
 
   const localCurrency = getLocalCurrencyCode();
 
@@ -56,7 +58,7 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
       setEnriching(true);
       enrichStation(station, stationsQueryKey ?? [])
         .then((s) => setEnriched(s))
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setEnriching(false));
     }
   }, [station?.id]);
@@ -78,6 +80,8 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
   }, [station, slideAnim]);
 
   const handleClose = () => {
+    // Show interstitial ad on back press
+    maybeShowAd();
     Animated.timing(slideAnim, {
       toValue: 1000,
       duration: 250,
@@ -111,9 +115,9 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
     >
       <Pressable style={[styles.backdrop, { backgroundColor: t.overlay }]} onPress={handleClose} />
 
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.sheet, 
+          styles.sheet,
           { backgroundColor: t.surface, transform: [{ translateY: slideAnim }] },
           !isDark && Shadows.xl
         ]}
@@ -136,8 +140,8 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
 
           {/* Header */}
           <View style={styles.headerRow}>
-            <TouchableOpacity 
-              style={[styles.backIcon, { backgroundColor: t.surfaceElevated }]} 
+            <TouchableOpacity
+              style={[styles.backIcon, { backgroundColor: t.surfaceElevated }]}
               onPress={handleClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
@@ -235,7 +239,7 @@ export function StationDetailModal({ station, allPrices, userCoords, onClose, st
 
           {/* Action buttons */}
           <View style={styles.actions}>
-             {/* Replaced Google Maps button with default Maps */}
+            {/* Replaced Google Maps button with default Maps */}
             <TouchableOpacity
               style={[styles.navBtn, { backgroundColor: Colors.primary }]}
               activeOpacity={0.8}

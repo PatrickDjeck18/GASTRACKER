@@ -172,10 +172,11 @@
       "firebaseMeasurementId": "G-EP5QNBNPWZ",
       "firebaseFunctionsBaseUrl": "",
       "firebaseFunctionsRequireAuth": "false",
+      "admobNativeAndroidId": "ca-app-pub-4253750298784159/9009007389",
+      "admobNativeIosId": "ca-app-pub-4253750298784159/6718932147",
       "eas": {
-        "projectId": "198af9cf-d487-418f-9bda-de41144d64c1"
+        "projectId": "58d09c3f-9f29-49a9-9c5c-eab4a5052a9c"
       }
-    },
-    "owner": "denise18"
+    }
   }
 }

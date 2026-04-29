@@ -206,67 +206,32 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
       ].join('\n');
 
       const client = new GoogleGenerativeAI(key);
-      // Model fallback chain: fast → lite (used when rate-limited)
-      const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-      const MAX_RETRIES = 3;
-      const BASE_DELAY_MS = 1000;
+      const model = client.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        tools: [{ googleSearch: {} }],
+        generationConfig: { responseMimeType: 'application/json' }
+      });
 
-      let lastError = null;
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      let text = response.text().trim();
+      const cleanText = text.replace(/```json\n?|```/g, '').trim();
+      let parsed = JSON.parse(cleanText);
 
-      for (const modelName of MODEL_CHAIN) {
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const model = client.getGenerativeModel({
-              model: modelName,
-              tools: [{ googleSearch: {} }]
-            });
+      const currency = ((parsed.currency || currencyUpper) + '').toUpperCase();
+      const prices = Array.isArray(parsed.prices)
+        ? parsed.prices
+          .filter((p) => typeof p.fuelType === 'string' && typeof p.price === 'number' && p.price > 0)
+          .map((p) => ({
+            fuelType: p.fuelType,
+            price: Math.round(p.price * 1000) / 1000,
+            currency,
+            lastUpdated: new Date().toISOString(),
+          }))
+        : [];
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text().trim();
-            const cleanText = text.replace(/```json\n?|```/g, '').trim();
-            const parsed = JSON.parse(cleanText);
-
-            const currency = ((parsed.currency || currencyUpper) + '').toUpperCase();
-            const prices = Array.isArray(parsed.prices)
-              ? parsed.prices
-                .filter((p) => typeof p.fuelType === 'string' && typeof p.price === 'number' && p.price > 0)
-                .map((p) => ({
-                  fuelType: p.fuelType,
-                  price: Math.round(p.price * 1000) / 1000,
-                  currency,
-                  lastUpdated: new Date().toISOString(),
-                }))
-              : [];
-
-            const grounded = prices.length > 0;
-            return res.json({ prices, currency, grounded, attribution: parsed.attribution || 'Gemini Search' });
-
-          } catch (err) {
-            lastError = err;
-            const is429 = err?.message?.includes('429') || err?.status === 429;
-            const isRetriable = is429 || err?.message?.includes('503') || err?.message?.includes('500');
-
-            if (is429) {
-              // Rate limited on this model — break inner loop, try next model
-              logger.warn(`[geminiFuelPrices] ${modelName} rate limited (attempt ${attempt}), trying fallback`);
-              break;
-            }
-
-            if (isRetriable && attempt < MAX_RETRIES) {
-              const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
-              logger.warn(`[geminiFuelPrices] ${modelName} error (attempt ${attempt}), retrying in ${delay}ms: ${err.message}`);
-              await new Promise(r => setTimeout(r, delay));
-            } else {
-              // Non-retriable or exhausted retries on this model
-              break;
-            }
-          }
-        }
-      }
-
-      // All models and retries exhausted
-      throw lastError || new Error('All models exhausted');
-
+      const grounded = prices.length > 0;
+      res.json({ prices, currency, grounded, attribution: parsed.attribution || 'Gemini Search' });
     } catch (err) {
       logger.error('Gemini Fuel Prices Error:', err.message);
       res.status(500).json({ error: err.message });
@@ -303,8 +268,9 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
 
       const client = new GoogleGenerativeAI(key);
       const model = client.getGenerativeModel({
-        model: 'gemini-2.5-flash',
-        tools: [{ googleSearch: {} }]
+        model: 'gemini-2.0-flash',
+        tools: [{ googleSearch: {} }],
+        generationConfig: { responseMimeType: 'application/json' }
       });
 
       const result = await model.generateContent(prompt);

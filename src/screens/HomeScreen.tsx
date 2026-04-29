@@ -147,45 +147,71 @@ const cb = StyleSheet.create({
 function PeekCard({
   station, allPrices, fuelFilter, isDark, localCurrency, onPress,
 }: { station: Station; allPrices: number[]; fuelFilter: string | null; isDark: boolean; localCurrency: string; onPress: () => void }) {
-  const text   = isDark ? Colors.dark.text   : Colors.light.text;
-  const muted  = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
-  const best   = bestPrice(station, fuelFilter);
-  const price  = best ? formatPrice(best.price, localCurrency) : '—';
-  const tier   = best ? getPriceTier(best.price, allPrices) : 'unknown';
-  const pColor: Record<string, string> = { cheap: Colors.price.cheap, medium: Colors.price.medium, expensive: Colors.price.expensive, unknown: Colors.price.unknown };
+  const text  = isDark ? Colors.dark.text      : Colors.light.text;
+  const muted = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
+  const sec   = isDark ? Colors.dark.textSecondary : Colors.light.textSecondary;
+  const best  = bestPrice(station, fuelFilter);
+  const price = best ? formatPrice(best.price, localCurrency) : '—';
+  const tier  = best ? getPriceTier(best.price, allPrices) : 'unknown';
+  const tierColors: Record<string, string> = {
+    cheap: Colors.price.cheap, medium: Colors.price.medium,
+    expensive: Colors.price.expensive, unknown: Colors.price.unknown,
+  };
+  const tc = tierColors[tier];
 
   return (
     <Animated.View entering={FadeInDown.delay(200).springify()}>
       <TouchableOpacity
         style={[pk.card, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}
-        onPress={onPress} activeOpacity={0.9}
+        onPress={onPress} activeOpacity={0.88}
       >
+        {/* colour accent bar */}
+        <View style={[pk.accentBar, { backgroundColor: tc }]} />
+
         <View style={pk.topRow}>
-          <View style={[pk.iconWrap, { backgroundColor: Colors.primary + '15' }]}>
-            <MaterialCommunityIcons name="gas-station" size={22} color={Colors.primary} />
+          <View style={[pk.iconWrap, { backgroundColor: Colors.primary + '18' }]}>
+            <MaterialCommunityIcons name="gas-station" size={20} color={Colors.primary} />
           </View>
-          <View style={[pk.priceBadge, { backgroundColor: pColor[tier] + '15', borderColor: pColor[tier] + '30' }]}>
-            <Text style={[pk.price, { color: pColor[tier] }]}>{price}</Text>
+          <View style={[pk.pricePill, { backgroundColor: tc + '18', borderColor: tc + '40' }]}>
+            <Text style={[pk.priceText, { color: tc }]}>{price}</Text>
           </View>
         </View>
-        <Text style={[pk.name, { color: text }]} numberOfLines={1}>{station.brand ?? station.name}</Text>
-        <View style={pk.distRow}>
-          <MaterialCommunityIcons name="near-me" size={14} color={muted} />
-          <Text style={[pk.dist, { color: muted }]}>{formatDistance(station.distance)}</Text>
+
+        <Text style={[pk.name, { color: text }]} numberOfLines={1}>
+          {station.brand ?? station.name}
+        </Text>
+        <Text style={[pk.addr, { color: sec }]} numberOfLines={1}>
+          {station.address?.split(',')[0] ?? ''}
+        </Text>
+
+        <View style={pk.footer}>
+          <View style={pk.distRow}>
+            <MaterialCommunityIcons name="near-me" size={12} color={muted} />
+            <Text style={[pk.distText, { color: muted }]}>{formatDistance(station.distance)}</Text>
+          </View>
+          {best && (
+            <Text style={[pk.fuelType, { color: muted }]} numberOfLines={1}>
+              {best.fuelType}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     </Animated.View>
   );
 }
 const pk = StyleSheet.create({
-  card:    { width: 160, borderRadius: Radii.xxl, borderWidth: 1, padding: Spacing.lg, marginRight: Spacing.md, ...Shadows.lg },
-  topRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
-  iconWrap:{ width: 38, height: 38, borderRadius: Radii.lg, justifyContent: 'center', alignItems: 'center' },
-  priceBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radii.full, borderWidth: 1 },
-  price:   { fontSize: FontSize.md, fontWeight: '900', letterSpacing: -0.5 },
-  name:    { fontSize: FontSize.md, fontWeight: '800', marginBottom: 6, letterSpacing: -0.3 },
-  distRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dist:    { fontSize: 13, fontWeight: '600' },
+  card:     { width: 180, borderRadius: Radii.xxl, borderWidth: 1, overflow: 'hidden', marginRight: Spacing.md, ...Shadows.lg },
+  accentBar:{ height: 3, marginBottom: Spacing.md },
+  topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm, paddingHorizontal: Spacing.lg },
+  iconWrap: { width: 36, height: 36, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
+  pricePill:{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.full, borderWidth: 1 },
+  priceText:{ fontSize: FontSize.sm, fontWeight: '900', letterSpacing: -0.3 },
+  name:     { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.4, paddingHorizontal: Spacing.lg, marginBottom: 2 },
+  addr:     { fontSize: FontSize.xs, fontWeight: '500', paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm, opacity: 0.7 },
+  footer:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
+  distRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  distText: { fontSize: FontSize.xs, fontWeight: '700' },
+  fuelType: { fontSize: FontSize.xs, fontWeight: '600', maxWidth: 70 },
 });
 
 /* ── Radius picker modal ────────────────────────────── */
@@ -527,20 +553,21 @@ const g = StyleSheet.create({
   locBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingRight: Spacing.sm,
-    paddingLeft: Spacing.xl,
-    paddingVertical: 8,
-    borderRadius: Radii.xl,
+    gap: 10,
+    paddingRight: 6,
+    paddingLeft: Spacing.lg,
+    paddingVertical: 7,
+    borderRadius: Radii.full,
     borderWidth: 1,
-    minWidth: '70%',
-    maxWidth: '90%',
+    minWidth: '72%',
+    maxWidth: '92%',
     ...Shadows.lg,
   },
-  locInfo: { flex: 1, justifyContent: 'center' },
-  locText: { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.5 },
-  locSub:  { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', opacity: 0.6 },
-  searchBtn: { width: 38, height: 38, borderRadius: Radii.lg, justifyContent: 'center', alignItems: 'center' },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.price.cheap },
+  locInfo: { flex: 1 },
+  locText: { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.4 },
+  locSub:  { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.55 },
+  searchBtn: { width: 40, height: 40, borderRadius: Radii.full, justifyContent: 'center', alignItems: 'center' },
 
   /* price legend */
   legendWrap: { position: 'absolute', right: Spacing.lg },
@@ -562,27 +589,32 @@ const g = StyleSheet.create({
     left: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     paddingRight: Spacing.lg,
-    paddingLeft: Spacing.sm,
+    paddingLeft: 6,
     paddingVertical: 6,
     borderRadius: Radii.full,
     borderWidth: 1,
-    ...Shadows.lg,
+    ...Shadows.xl,
   },
-  countIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+  countIconWrap: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center', ...Shadows.colored(Colors.primary) },
   countCol: { justifyContent: 'center' },
-  countTxt: { fontSize: FontSize.sm, fontWeight: '800' },
-  countSub: { fontSize: FontSize.xs, fontWeight: '700' },
+  countTxt: { fontSize: FontSize.sm, fontWeight: '800', letterSpacing: -0.3 },
+  countSub: { fontSize: FontSize.xs, fontWeight: '700', letterSpacing: -0.2 },
 
   /* loading spinner */
   spinner: {
     position: 'absolute',
     alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    padding: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.full,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
+  spinnerTxt: { color: '#fff', fontSize: FontSize.xs, fontWeight: '600' },
 
   /* peek strip */
   peek:     { position: 'absolute', left: 0, right: 0 },
