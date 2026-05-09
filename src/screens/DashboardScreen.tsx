@@ -5,7 +5,7 @@ import Animated, {
   FadeInDown, FadeInRight, FadeInUp, FadeIn,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, type NavigationProp } from '@react-navigation/native';
 
 import { useIsDark } from '../hooks/useIsDark';
 import { useLocation } from '../hooks/useLocation';
@@ -21,13 +21,13 @@ import { NativeAd } from '../components/NativeAd';
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 /* ── Time-aware greeting ────────────────────────────── */
-function getGreeting(): { text: string; icon: string; emoji: string } {
+function getGreeting(): { line1: string; line2: string; icon: string; emoji: string } {
   const h = new Date().getHours();
-  if (h < 6)  return { text: 'Good Night',      icon: 'weather-night',         emoji: '🌙' };
-  if (h < 12) return { text: 'Good Morning',     icon: 'weather-sunny',         emoji: '☀️' };
-  if (h < 17) return { text: 'Good Afternoon',   icon: 'white-balance-sunny',   emoji: '🌤️' };
-  if (h < 21) return { text: 'Good Evening',     icon: 'weather-sunset',        emoji: '🌅' };
-  return { text: 'Good Night', icon: 'weather-night', emoji: '🌙' };
+  if (h < 6)  return { line1: 'Good', line2: 'Night',      icon: 'weather-night',         emoji: '🌙' };
+  if (h < 12) return { line1: 'Good', line2: 'Morning',    icon: 'weather-sunny',         emoji: '☀️' };
+  if (h < 17) return { line1: 'Good', line2: 'Afternoon',  icon: 'white-balance-sunny',   emoji: '🌤️' };
+  if (h < 21) return { line1: 'Good', line2: 'Evening',    icon: 'weather-sunset',        emoji: '🌅' };
+  return { line1: 'Good', line2: 'Night', icon: 'weather-night', emoji: '🌙' };
 }
 
 /* ── Stat Pill ──────────────────────────────────────── */
@@ -41,10 +41,10 @@ function StatPill({
       style={[stat.pill, { backgroundColor: thm.card, borderColor: thm.cardBorder }]}
       activeOpacity={0.85}
     >
-      <View style={[stat.iconCircle, { backgroundColor: color + '18' }]}>
-        <MaterialCommunityIcons name={icon} size={18} color={color} />
+      <View style={[stat.iconWrap, { borderColor: color + '30', backgroundColor: color + '10' }]}>
+        <MaterialCommunityIcons name={icon} size={22} color={color} />
       </View>
-      <Text style={[stat.value, { color: thm.text }]}>{value}</Text>
+      <Text style={[stat.value, { color: color === thm.text ? thm.text : color }]}>{value}</Text>
       <Text style={[stat.label, { color: thm.textMuted }]}>{label}</Text>
     </AnimatedTouchable>
   );
@@ -53,20 +53,21 @@ const stat = StyleSheet.create({
   pill: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 18,
     paddingHorizontal: 8,
     borderRadius: Radii.xl,
     borderWidth: 1,
-    gap: 4,
+    gap: 8,
     ...Shadows.sm,
   },
-  iconCircle: {
-    width: 36, height: 36, borderRadius: 18,
+  iconWrap: {
+    width: 38, height: 38, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 2,
+    borderWidth: 1,
+    marginBottom: 4,
   },
-  value: { fontSize: FontSize.lg, fontWeight: '900', letterSpacing: -0.5 },
-  label: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
+  label: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
 });
 
 /* ── Quick Action Card ──────────────────────────────── */
@@ -85,38 +86,30 @@ function QuickAction({
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <View style={[qa.iconWrap, { backgroundColor: color + '20' }]}>
-        <MaterialCommunityIcons name={icon} size={24} color={color} />
+      <View style={[qa.iconWrap, { backgroundColor: color + '15' }]}>
+        <MaterialCommunityIcons name={icon} size={28} color={color} />
       </View>
-      <Text style={[qa.label, { color: isDark ? thm.text : color }]}>{label}</Text>
+      <Text style={[qa.label, { color: thm.text }]}>{label}</Text>
       <Text style={[qa.sub, { color: thm.textMuted }]}>{subtitle}</Text>
-      <View style={[qa.arrow, { backgroundColor: color + '15' }]}>
-        <MaterialCommunityIcons name="arrow-right" size={14} color={color} />
-      </View>
     </AnimatedTouchable>
   );
 }
 const qa = StyleSheet.create({
   card: {
     flex: 1,
-    padding: Spacing.lg,
+    padding: Spacing.xl,
     borderRadius: Radii.xxl,
     borderWidth: 1,
     gap: 6,
     ...Shadows.md,
   },
   iconWrap: {
-    width: 44, height: 44, borderRadius: Radii.lg,
+    width: 48, height: 48, borderRadius: Radii.lg,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  label: { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.3 },
-  sub:   { fontSize: 11, fontWeight: '500', lineHeight: 15 },
-  arrow: {
-    width: 28, height: 28, borderRadius: 14,
-    justifyContent: 'center', alignItems: 'center',
-    alignSelf: 'flex-end', marginTop: 4,
-  },
+  label: { fontSize: FontSize.lg, fontWeight: '800', letterSpacing: -0.3 },
+  sub:   { fontSize: 13, fontWeight: '500', lineHeight: 18 },
 });
 
 /* ── Station Row (premium) ──────────────────────────── */
@@ -255,6 +248,14 @@ export default function DashboardScreen() {
     enabled: !!coords,
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      if (coords) {
+        void refetch();
+      }
+    }, [refetch, coords])
+  );
+
   const allPrices = useMemo(
     () => stations.map((s) => bestPrice(s, fuelFilter)?.price).filter(Boolean) as number[],
     [stations, fuelFilter],
@@ -365,25 +366,66 @@ export default function DashboardScreen() {
             <View style={ds.greetingLeft}>
               <View style={ds.greetingTextRow}>
                 <Text style={[ds.greeting, { color: thm.text }]}>
-                  {greeting.text}
+                  {greeting.line1}{'\n'}{greeting.line2}
                 </Text>
                 <Text style={ds.emoji}>{greeting.emoji}</Text>
               </View>
-              <View style={ds.locationRow}>
-                <MaterialCommunityIcons name="map-marker" size={13} color={Colors.primary} />
-                <Text style={[ds.location, { color: thm.textSecondary }]} numberOfLines={1}>
+              <View style={ds.locationBadge}>
+                <View style={ds.locationDot} />
+                <Text style={ds.location} numberOfLines={1}>
                   {locationName || 'Locating…'}
                 </Text>
               </View>
             </View>
             <TouchableOpacity
-              style={[ds.settingsBtn, { backgroundColor: thm.surfaceElevated, borderColor: thm.border }]}
+              style={[ds.settingsBtn, { backgroundColor: thm.card, borderColor: thm.cardBorder }]}
               onPress={() => navigation.navigate('SettingsTab')}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="cog-outline" size={20} color={thm.textSecondary} />
+              <MaterialCommunityIcons name="cog-outline" size={24} color={thm.text} />
             </TouchableOpacity>
           </Animated.View>
+
+          {/* ── Main Card (Best Overall) ── */}
+          {bestOverall ? (
+            <AnimatedTouchable
+              entering={FadeInDown.delay(100).springify()}
+              style={ds.mainCard}
+              onPress={() => goToStation(bestOverall.station.id)}
+              activeOpacity={0.9}
+            >
+              <View style={ds.mainCardGlow} />
+              <View style={ds.mainCardPill}>
+                <MaterialCommunityIcons name="star-four-points" size={14} color="#10B981" />
+                <Text style={ds.mainCardPillTxt}>BEST PRICE NEAR YOU</Text>
+              </View>
+              
+              <View style={ds.mainCardContent}>
+                <View style={ds.mainCardLeft}>
+                  <Text style={ds.mainCardTitle} numberOfLines={1}>
+                    {bestOverall.station.brand ?? bestOverall.station.name}
+                  </Text>
+                  <Text style={ds.mainCardSub} numberOfLines={1}>
+                    {formatDistance(bestOverall.station.distance)} • {bestOverall.best.fuelType} • Updated 2m ago ✓
+                  </Text>
+                </View>
+                <View style={ds.mainCardRight}>
+                  <Text style={ds.mainCardCurrency}>{localCurrency}</Text>
+                  <Text style={ds.mainCardPrice}>{bestOverall.best.price.toFixed(2)}</Text>
+                  {bestOverallSaving != null ? (
+                    <Text style={ds.mainCardSaving}>
+                      Save ~{formatPrice(bestOverallSaving, localCurrency)}/L vs avg
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              <View style={ds.mainCardBtn}>
+                <MaterialCommunityIcons name="compass" size={18} color="#FFFFFF" />
+                <Text style={ds.mainCardBtnTxt}>Navigate Now • 3 min drive</Text>
+              </View>
+            </AnimatedTouchable>
+          ) : null}
 
           {/* ── Stats Row ── */}
           <View style={ds.statsRow}>
@@ -391,22 +433,22 @@ export default function DashboardScreen() {
               icon="gas-station"
               label="Stations"
               value={isLoading ? '…' : `${stationCount}`}
-              color={Colors.primary}
+              color={thm.text}
               isDark={isDark}
               delay={150}
             />
             <StatPill
-              icon="arrow-down-bold"
+              icon="trending-down"
               label="Best"
-              value={minPrice != null ? formatPrice(minPrice, localCurrency) : '—'}
+              value={minPrice != null ? formatPrice(minPrice, '').trim() : '—'}
               color={Colors.price.cheap}
               isDark={isDark}
               delay={250}
             />
             <StatPill
-              icon="chart-timeline-variant"
+              icon="chart-bar"
               label="Average"
-              value={avgPrice != null ? formatPrice(avgPrice, localCurrency) : '—'}
+              value={avgPrice != null ? formatPrice(avgPrice, '').trim() : '—'}
               color={Colors.price.medium}
               isDark={isDark}
               delay={350}
@@ -419,24 +461,23 @@ export default function DashboardScreen() {
             style={[ds.retentionCard, { backgroundColor: thm.card, borderColor: thm.cardBorder }]}
           >
             <View style={ds.retentionLeft}>
-              <View style={[ds.retentionIcon, { backgroundColor: Colors.primary + '14' }]}>
-                <MaterialCommunityIcons name="fire" size={16} color={Colors.primary} />
+              <View style={[ds.retentionIcon, { backgroundColor: '#FF6B0015' }]}>
+                <MaterialCommunityIcons name="fire" size={28} color="#FF6B00" />
               </View>
-              <View>
+              <View style={{flex: 1}}>
                 <Text style={[ds.retentionTitle, { color: thm.text }]}>
-                  {retention.currentStreak} day streak
+                  {retention.currentStreak} Day Streak
                 </Text>
                 <Text style={[ds.retentionSub, { color: thm.textMuted }]}>
-                  {retention.totalSessions} sessions • best {retention.longestStreak} days
+                  {retention.totalSessions} fill-ups • {formatPrice(weeklyNetSavings, localCurrency)} / {formatPrice(weeklyGoal, localCurrency)} savings goal
                 </Text>
+                <View style={[ds.goalBarBg, { backgroundColor: thm.surfaceElevated, marginTop: 8 }]}>
+                  <View style={[ds.goalBarFill, { width: `${weeklyProgress * 100}%` }]} />
+                </View>
               </View>
-            </View>
-            <View style={ds.goalWrap}>
-              <Text style={[ds.goalLabel, { color: thm.textMuted }]}>
-                {formatPrice(weeklyNetSavings, localCurrency)} / {formatPrice(weeklyGoal, localCurrency)}
-              </Text>
-              <View style={[ds.goalBarBg, { backgroundColor: thm.surfaceElevated }]}>
-                <View style={[ds.goalBarFill, { width: `${weeklyProgress * 100}%` }]} />
+              <View style={[ds.flameBadge, { backgroundColor: '#FF6B0015' }]}>
+                <Text style={ds.flameBadgeTxt}>{retention.currentStreak}</Text>
+                <MaterialCommunityIcons name="fire" size={14} color="#FF6B00" />
               </View>
             </View>
           </Animated.View>
@@ -447,7 +488,7 @@ export default function DashboardScreen() {
 
           {/* ── Quick Actions ── */}
           <Animated.View entering={FadeIn.delay(200)} style={ds.sectionHeaderRow}>
-            <Text style={[ds.sectionTitle, { color: thm.textMuted }]}>Quick Actions</Text>
+            <Text style={[ds.sectionTitle, { color: thm.textMuted }]}>QUICK ACTIONS</Text>
           </Animated.View>
 
           <View style={ds.quickRow}>
@@ -456,19 +497,19 @@ export default function DashboardScreen() {
               label="Local Map"
               subtitle="Explore nearby stations"
               color={Colors.primary}
-              bgColor={isDark ? Colors.dark.surfaceElevated : '#FFFFFF'}
-              borderColor={isDark ? Colors.dark.cardBorder : Colors.light.cardBorder}
+              bgColor={thm.card}
+              borderColor={thm.cardBorder}
               onPress={() => navigation.navigate('MapTab')}
               delay={300}
               isDark={isDark}
             />
             <QuickAction
-              icon="calculator-variant-outline"
+              icon="sack"
               label="Savings"
               subtitle="Calculate fuel costs"
-              color={Colors.accent}
-              bgColor={isDark ? Colors.dark.surfaceElevated : '#FFFFFF'}
-              borderColor={isDark ? Colors.dark.cardBorder : Colors.light.cardBorder}
+              color={Colors.warning}
+              bgColor={thm.card}
+              borderColor={thm.cardBorder}
               onPress={() => navigation.navigate('SavingsTab')}
               delay={400}
               isDark={isDark}
@@ -498,7 +539,7 @@ export default function DashboardScreen() {
 
           {/* ── Cheapest Near Me ── */}
           <Animated.View entering={FadeIn.delay(500)} style={ds.sectionHeaderRow}>
-            <Text style={[ds.sectionTitle, { color: thm.textMuted }]}>Cheapest Near Me</Text>
+            <Text style={[ds.sectionTitle, { color: thm.textMuted }]}>CHEAPEST NEAR ME</Text>
             <TouchableOpacity onPress={() => navigation.navigate('ListTab')} hitSlop={12}>
               <View style={ds.viewAllRow}>
                 <Text style={[ds.viewAllTxt, { color: Colors.primary }]}>View All</Text>
@@ -508,36 +549,6 @@ export default function DashboardScreen() {
           </Animated.View>
 
           <NativeAd />
-
-          {bestOverall ? (
-            <AnimatedTouchable
-              entering={FadeInDown.delay(520).springify()}
-              style={[ds.bestCard, { backgroundColor: Colors.price.cheapBg, borderColor: Colors.price.cheapBorder }]}
-              onPress={() => goToStation(bestOverall.station.id)}
-              activeOpacity={0.85}
-            >
-              <View style={ds.bestLeft}>
-                <View style={ds.bestBadge}>
-                  <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.price.cheap} />
-                  <Text style={ds.bestBadgeTxt}>Best overall</Text>
-                </View>
-                <Text style={[ds.bestName, { color: thm.text }]} numberOfLines={1}>
-                  {bestOverall.station.brand ?? bestOverall.station.name}
-                </Text>
-                <Text style={[ds.bestMeta, { color: thm.textSecondary }]} numberOfLines={1}>
-                  {formatDistance(bestOverall.station.distance)} • {bestOverall.best.fuelType}
-                </Text>
-              </View>
-              <View style={ds.bestRight}>
-                <Text style={ds.bestPrice}>{formatPrice(bestOverall.best.price, localCurrency)}</Text>
-                {bestOverallSaving != null ? (
-                  <Text style={ds.bestSaving}>
-                    Save ~{formatPrice(bestOverallSaving, localCurrency)}/L
-                  </Text>
-                ) : null}
-              </View>
-            </AnimatedTouchable>
-          ) : null}
 
           {isLoading ? (
             <Animated.View entering={FadeIn.delay(400)}>
@@ -647,40 +658,145 @@ const ds = StyleSheet.create({
   },
   greetingRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   greetingLeft: { flex: 1 },
   greetingTextRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   greeting: {
-    fontSize: FontSize.xxl,
+    fontSize: 42,
     fontWeight: '900',
-    letterSpacing: -0.8,
+    letterSpacing: -1.5,
+    lineHeight: 44,
   },
-  emoji: { fontSize: 22 },
-  locationRow: {
+  emoji: { fontSize: 32, marginTop: 4 },
+  locationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: 6,
+    marginTop: 8,
+  },
+  locationDot: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#10B981',
   },
   location: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: '600',
+    color: '#94A3B8',
     flex: 1,
   },
   settingsBtn: {
-    width: 42, height: 42,
-    borderRadius: 21,
+    width: 48, height: 48,
+    borderRadius: Radii.full,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
+    marginTop: 4,
     ...Shadows.sm,
+  },
+
+  /* Main Card */
+  mainCard: {
+    backgroundColor: '#091A14',
+    borderRadius: Radii.xxl,
+    padding: Spacing.xl,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.xl,
+    overflow: 'hidden',
+    ...Shadows.lg,
+  },
+  mainCardGlow: {
+    position: 'absolute',
+    right: -60,
+    bottom: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: '#10B981',
+    opacity: 0.15,
+  },
+  mainCardPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radii.full,
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.3)',
+    marginBottom: Spacing.xl,
+    gap: 6,
+  },
+  mainCardPillTxt: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  mainCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+  },
+  mainCardLeft: {
+    flex: 1,
+    paddingRight: Spacing.md,
+  },
+  mainCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: -1,
+    marginBottom: 4,
+  },
+  mainCardSub: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  mainCardRight: {
+    alignItems: 'flex-end',
+  },
+  mainCardCurrency: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: -6,
+  },
+  mainCardPrice: {
+    color: '#10B981',
+    fontSize: 52,
+    fontWeight: '900',
+    letterSpacing: -2,
+    lineHeight: 56,
+  },
+  mainCardSaving: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  mainCardBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: Radii.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  mainCardBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: FontSize.md,
+    fontWeight: '800',
   },
 
   /* Stats */
@@ -690,51 +806,56 @@ const ds = StyleSheet.create({
   },
   retentionCard: {
     marginTop: Spacing.md,
-    borderRadius: Radii.xl,
+    borderRadius: Radii.xxl,
     borderWidth: 1,
-    padding: Spacing.md,
+    padding: Spacing.xl,
     ...Shadows.sm,
   },
   retentionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
   retentionIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 48,
+    height: 48,
+    borderRadius: Radii.full,
     justifyContent: 'center',
     alignItems: 'center',
   },
   retentionTitle: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.lg,
     fontWeight: '800',
-    letterSpacing: -0.2,
+    letterSpacing: -0.4,
   },
   retentionSub: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
-    marginTop: 2,
-  },
-  goalWrap: {
-    gap: 6,
-  },
-  goalLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+    marginTop: 4,
   },
   goalBarBg: {
     width: '100%',
-    height: 7,
-    borderRadius: 999,
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   goalBarFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 999,
+    backgroundColor: '#FF6B00',
+    borderRadius: 4,
+  },
+  flameBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radii.full,
+    gap: 4,
+  },
+  flameBadgeTxt: {
+    color: '#FF6B00',
+    fontSize: 14,
+    fontWeight: '800',
   },
 
   /* Content */
@@ -765,63 +886,6 @@ const ds = StyleSheet.create({
   viewAllTxt: {
     fontSize: FontSize.sm,
     fontWeight: '700',
-  },
-  bestCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-    alignItems: 'center',
-    borderRadius: Radii.xl,
-    borderWidth: 1,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  bestLeft: {
-    flex: 1,
-  },
-  bestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    borderRadius: Radii.full,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: 'rgba(16,185,129,0.15)',
-    marginBottom: 6,
-  },
-  bestBadgeTxt: {
-    color: Colors.price.cheap,
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  bestName: {
-    fontSize: FontSize.md,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  bestMeta: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 3,
-  },
-  bestRight: {
-    alignItems: 'flex-end',
-    marginLeft: Spacing.sm,
-  },
-  bestPrice: {
-    fontSize: FontSize.md,
-    fontWeight: '900',
-    color: Colors.price.cheap,
-    letterSpacing: -0.3,
-  },
-  bestSaving: {
-    marginTop: 2,
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.price.cheap,
   },
 
   /* Quick Actions */

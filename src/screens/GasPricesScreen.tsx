@@ -4,6 +4,7 @@ import {
   ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView,
   useWindowDimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getLocalCurrencyCode } from '../services/fuelPriceService';
@@ -231,6 +232,12 @@ export default function GasPricesScreen() {
 
   const { data: prices = [], isLoading, isFetching, refetch, isRefetching } = useGasPrices(region);
   const userCurrency = getLocalCurrencyCode();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch])
+  );
   const { width: screenWidth } = useWindowDimensions();
 
   /* responsive region tab sizing */

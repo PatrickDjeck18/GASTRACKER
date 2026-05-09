@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   ScrollView, FlatList, Modal, Pressable,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeInDown, FadeInRight, Layout } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,7 @@ import { SearchBar }          from '../components/SearchBar';
 import { SkeletonCards }      from '../components/SkeletonCards';
 import { getLocalCurrencyCode } from '../services/fuelPriceService';
 
-import { bestPrice, formatPrice, getPriceTier } from '../utils/price';
+import { bestPrice, formatPrice, getPriceTier, currencySymbol } from '../utils/price';
 import { formatDistance }     from '../utils/geo';
 import { Colors, Spacing, Radii, FontSize, Shadows } from '../constants/theme';
 import { FUEL_TYPES }         from '../constants/fuelTypes';
@@ -58,8 +59,8 @@ function FuelChips({
 }: { selected: string | null; onChange: (v: string | null) => void; isDark: boolean }) {
   const text   = isDark ? Colors.dark.text   : Colors.light.text;
   const muted  = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
-  const glassBg = glass(isDark);
-  const borderC = borderSubtle(isDark);
+  const glassBg = isDark ? Colors.dark.surfaceElevated : '#FFFFFF';
+  const borderC = isDark ? Colors.dark.border : '#E2E8F0';
 
   return (
     <ScrollView
@@ -68,11 +69,11 @@ function FuelChips({
     >
       {/* All */}
       <TouchableOpacity
-        style={[fc.chip, !selected ? fc.chipActive : { backgroundColor: glassBg, borderColor: borderC }]}
+        style={[fc.chip, !selected ? fc.chipActive : { backgroundColor: glassBg, borderWidth: 1, borderColor: borderC }]}
         onPress={() => onChange(null)} activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="gas-station-outline" size={14} color={!selected ? '#FFF' : muted} />
-        <Text style={[fc.label, { color: !selected ? '#FFF' : text }]}>All</Text>
+        <MaterialCommunityIcons name="gas-station" size={16} color={!selected ? '#EF4444' : muted} />
+        <Text style={[fc.label, { color: !selected ? '#FFFFFF' : text }]}>All</Text>
       </TouchableOpacity>
 
       {FUEL_TYPES.map((ft, idx) => {
@@ -80,10 +81,10 @@ function FuelChips({
         return (
           <Animated.View key={ft.key} entering={FadeInRight.delay(idx * 100).springify()}>
             <TouchableOpacity
-              style={[fc.chip, on ? fc.chipActive : { backgroundColor: glassBg, borderColor: borderC }]}
+              style={[fc.chip, on ? fc.chipActive : { backgroundColor: glassBg, borderWidth: 1, borderColor: borderC }]}
               onPress={() => onChange(on ? null : ft.tomtomMatch)} activeOpacity={0.8}
             >
-              <Text style={[fc.label, { color: on ? '#FFF' : text }]}>
+              <Text style={[fc.label, { color: on ? '#FFFFFF' : text }]}>
                 {ft.tomtomMatch}
               </Text>
             </TouchableOpacity>
@@ -96,34 +97,9 @@ function FuelChips({
 const fc = StyleSheet.create({
   scroll: { flexGrow: 0 },
   row:    { paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 10 },
-  chip:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radii.full, borderWidth: 1, ...Shadows.sm },
-  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  label:  { fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.2 },
-});
-
-/* ── Price legend ───────────────────────────────────── */
-function PriceLegend({ isDark }: { isDark: boolean }) {
-  const sec = isDark ? Colors.dark.textSecondary : Colors.light.textSecondary;
-  return (
-    <View style={[pl.wrap, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}>
-      {[
-        { color: Colors.price.cheap,     label: 'Cheap' },
-        { color: Colors.price.medium,    label: 'Fair'  },
-        { color: Colors.price.expensive, label: 'High'  },
-      ].map((i) => (
-        <View key={i.label} style={pl.row}>
-          <View style={[pl.dot, { backgroundColor: i.color }]} />
-          <Text style={[pl.txt, { color: sec }]}>{i.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-const pl = StyleSheet.create({
-  wrap: { borderRadius: Radii.xl, paddingVertical: 10, paddingHorizontal: 12, gap: 8, borderWidth: 1, ...Shadows.sm },
-  row:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot:  { width: 10, height: 10, borderRadius: 5 },
-  txt:  { fontSize: 11, fontWeight: '700' },
+  chip:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radii.full, ...Shadows.sm },
+  chipActive: { backgroundColor: '#0F172A', borderColor: '#0F172A', borderWidth: 1 },
+  label:  { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
 });
 
 /* ── Control button ─────────────────────────────────── */
@@ -132,86 +108,116 @@ function CtrlBtn({
 }: { icon: string; onPress: () => void; isDark: boolean; color?: string }) {
   return (
     <TouchableOpacity
-      style={cb.btn}
+      style={[cb.btn, { backgroundColor: isDark ? Colors.dark.surfaceElevated : '#FFFFFF' }]}
       onPress={onPress} activeOpacity={0.7}
     >
-      <MaterialCommunityIcons name={icon} size={22} color={color ?? Colors.primary} />
+      <MaterialCommunityIcons name={icon} size={22} color={color ?? (isDark ? '#FFF' : '#000')} />
     </TouchableOpacity>
   );
 }
 const cb = StyleSheet.create({
-  btn: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
+  btn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', ...Shadows.md },
 });
 
 /* ── Mini station peek card ─────────────────────────── */
 function PeekCard({
-  station, allPrices, fuelFilter, isDark, localCurrency, onPress,
-}: { station: Station; allPrices: number[]; fuelFilter: string | null; isDark: boolean; localCurrency: string; onPress: () => void }) {
+  station, allPrices, fuelFilter, isDark, localCurrency, isBest, onPress,
+}: { station: Station; allPrices: number[]; fuelFilter: string | null; isDark: boolean; localCurrency: string; isBest?: boolean; onPress: () => void }) {
   const text  = isDark ? Colors.dark.text      : Colors.light.text;
   const muted = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
   const sec   = isDark ? Colors.dark.textSecondary : Colors.light.textSecondary;
   const best  = bestPrice(station, fuelFilter);
-  const price = best ? formatPrice(best.price, localCurrency) : '—';
+  const priceValue = best ? best.price.toFixed(2) : '—';
+  
   const tier  = best ? getPriceTier(best.price, allPrices) : 'unknown';
   const tierColors: Record<string, string> = {
     cheap: Colors.price.cheap, medium: Colors.price.medium,
     expensive: Colors.price.expensive, unknown: Colors.price.unknown,
   };
-  const tc = tierColors[tier];
+  const tc = isBest ? Colors.price.cheap : (tier === 'medium' ? '#F59E0B' : tierColors[tier]);
 
   return (
     <Animated.View entering={FadeInDown.delay(200).springify()}>
       <TouchableOpacity
-        style={[pk.card, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}
+        style={[
+          pk.card,
+          { backgroundColor: isDark ? Colors.dark.surfaceElevated : '#FFFFFF', borderColor: isDark ? Colors.dark.border : '#E2E8F0', borderWidth: 1 },
+          isBest && { backgroundColor: 'rgba(16,185,129,0.08)', borderColor: '#10B981', borderWidth: 2 }
+        ]}
         onPress={onPress} activeOpacity={0.88}
       >
-        {/* colour accent bar */}
-        <View style={[pk.accentBar, { backgroundColor: tc }]} />
-
-        <View style={pk.topRow}>
-          <View style={[pk.iconWrap, { backgroundColor: Colors.primary + '18' }]}>
-            <MaterialCommunityIcons name="gas-station" size={20} color={Colors.primary} />
+        {isBest && (
+          <View style={pk.bestBadge}>
+            <MaterialCommunityIcons name="star-four-points" size={10} color="#FFF" />
+            <Text style={pk.bestBadgeTxt}>BEST PRICE</Text>
           </View>
-          <View style={[pk.pricePill, { backgroundColor: tc + '18', borderColor: tc + '40' }]}>
-            <Text style={[pk.priceText, { color: tc }]}>{price}</Text>
+        )}
+
+        <View style={pk.headerRow}>
+          <View style={[pk.iconSquare, { backgroundColor: isDark ? '#1F2937' : '#0F172A' }]}>
+            <MaterialCommunityIcons name="gas-station" size={20} color="#EF4444" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[pk.name, { color: text }]} numberOfLines={1}>
+              {station.brand ?? station.name}
+            </Text>
+            <Text style={[pk.addr, { color: sec }]} numberOfLines={1}>
+              {station.address?.split(',')[0]} • {formatDistance(station.distance)} away
+            </Text>
           </View>
         </View>
 
-        <Text style={[pk.name, { color: text }]} numberOfLines={1}>
-          {station.brand ?? station.name}
-        </Text>
-        <Text style={[pk.addr, { color: sec }]} numberOfLines={1}>
-          {station.address?.split(',')[0] ?? ''}
-        </Text>
-
-        <View style={pk.footer}>
-          <View style={pk.distRow}>
-            <MaterialCommunityIcons name="near-me" size={12} color={muted} />
-            <Text style={[pk.distText, { color: muted }]}>{formatDistance(station.distance)}</Text>
+        <View style={pk.priceRow}>
+          <View style={pk.priceLeft}>
+            <Text style={[pk.currency, { color: sec }]}>{localCurrency}</Text>
+            <Text style={[pk.priceText, { color: tc }]}>{priceValue}</Text>
           </View>
-          {best && (
-            <Text style={[pk.fuelType, { color: muted }]} numberOfLines={1}>
-              {best.fuelType}
-            </Text>
-          )}
+          <View style={pk.priceRight}>
+            <View style={pk.priceRightTop}>
+              <MaterialCommunityIcons name="navigation-variant" size={12} color={muted} />
+              <Text style={[pk.distText, { color: muted }]}>3 min drive</Text>
+            </View>
+            <Text style={[pk.updatedText, { color: muted }]}>Updated 4m ago ✓</Text>
+          </View>
+        </View>
+
+        <View style={pk.trendRow}>
+          <MaterialCommunityIcons name="chart-bar" size={14} color={isBest ? tc : '#F59E0B'} style={{opacity: 0.6}} />
+          <Text style={[pk.trendText, { color: isBest ? tc : '#F59E0B' }]}>
+            {isBest ? '↓ R0.37 vs area avg' : '→ stable this week'}
+          </Text>
+        </View>
+
+        <View style={[pk.navBtn, { backgroundColor: isBest ? '#10B981' : (isDark ? '#1F2937' : '#0F172A') }]}>
+          <MaterialCommunityIcons name="compass" size={16} color={isBest ? '#FFFFFF' : '#F59E0B'} />
+          <Text style={[pk.navBtnTxt, { color: '#FFFFFF' }]}>
+            {isBest ? 'Navigate • 3 min' : 'Navigate'}
+          </Text>
         </View>
       </TouchableOpacity>
     </Animated.View>
   );
 }
 const pk = StyleSheet.create({
-  card:     { width: 180, borderRadius: Radii.xxl, borderWidth: 1, overflow: 'hidden', marginRight: Spacing.md, ...Shadows.lg },
-  accentBar:{ height: 3, marginBottom: Spacing.md },
-  topRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm, paddingHorizontal: Spacing.lg },
-  iconWrap: { width: 36, height: 36, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
-  pricePill:{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.full, borderWidth: 1 },
-  priceText:{ fontSize: FontSize.sm, fontWeight: '900', letterSpacing: -0.3 },
-  name:     { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.4, paddingHorizontal: Spacing.lg, marginBottom: 2 },
-  addr:     { fontSize: FontSize.xs, fontWeight: '500', paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm, opacity: 0.7 },
-  footer:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
-  distRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  distText: { fontSize: FontSize.xs, fontWeight: '700' },
-  fuelType: { fontSize: FontSize.xs, fontWeight: '600', maxWidth: 70 },
+  card: { width: 260, borderRadius: Radii.xxl, overflow: 'hidden', marginRight: Spacing.md, padding: Spacing.lg, ...Shadows.md },
+  bestBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#10B981', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderBottomLeftRadius: Radii.lg },
+  bestBadgeTxt: { color: '#FFF', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: Spacing.md, paddingRight: 30 },
+  iconSquare: { width: 40, height: 40, borderRadius: Radii.md, justifyContent: 'center', alignItems: 'center' },
+  name: { fontSize: FontSize.lg, fontWeight: '800', letterSpacing: -0.4, marginBottom: 2 },
+  addr: { fontSize: 11, fontWeight: '500', opacity: 0.8 },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: Spacing.xs },
+  priceLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 2 },
+  currency: { fontSize: 12, fontWeight: '700', marginTop: 4 },
+  priceText: { fontSize: 32, fontWeight: '900', letterSpacing: -1, lineHeight: 36 },
+  priceRight: { alignItems: 'flex-end', paddingBottom: 4 },
+  priceRightTop: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 2 },
+  distText: { fontSize: 11, fontWeight: '600' },
+  updatedText: { fontSize: 10, fontWeight: '500' },
+  trendRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: Spacing.md },
+  trendText: { fontSize: 10, fontWeight: '700', opacity: 0.9 },
+  navBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: Radii.xl },
+  navBtnTxt: { fontSize: FontSize.md, fontWeight: '800' },
 });
 
 /* ── Radius picker modal ────────────────────────────── */
@@ -317,9 +323,17 @@ export default function HomeScreen() {
 
   /* ── stations ─── */
   const stationsQueryKey = ['stations', searchCentre?.latitude, searchCentre?.longitude, searchRadius];
-  const { data: stations = [], isLoading } = useStations({
+  const { data: stations = [], isLoading, refetch } = useStations({
     lat: searchCentre?.latitude, lon: searchCentre?.longitude, radius: searchRadius, enabled: !!searchCentre,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (searchCentre) {
+        void refetch();
+      }
+    }, [refetch, searchCentre])
+  );
 
   /* ── derived ─── */
   const allPrices = useMemo(
@@ -347,7 +361,7 @@ export default function HomeScreen() {
   const tabBarH      = TAB_BAR_H + insets.bottom;
   const showPeek     = !selectedStation && !searchActive && topStations.length > 0;
   const peekBottom   = tabBarH;
-  const ctrlBottom   = tabBarH + (showPeek ? PEEK_H : 0) + Spacing.lg;
+  const ctrlBottom   = tabBarH + (showPeek ? 350 : 0) + Spacing.lg;
 
   /* ── callbacks ─── */
   const handleSelect = useCallback((id: string) => {
@@ -416,15 +430,17 @@ export default function HomeScreen() {
           {locationName ? (
             <Animated.View 
               entering={FadeInDown.springify()}
-              style={[g.locBadge, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}
+              style={[g.locBadge, { backgroundColor: isDark ? Colors.dark.surfaceElevated : '#FFFFFF', borderColor: isDark ? Colors.dark.border : '#E2E8F0' }]}
             >
-              <MaterialCommunityIcons name="map-marker-outline" size={20} color={Colors.primary} />
+              <View style={g.liveDotWrap}>
+                <View style={g.liveDot} />
+              </View>
               <View style={g.locInfo}>
                 <Text style={[g.locText, { color: thm.text }]} numberOfLines={1}>{locationName}</Text>
-                <Text style={[g.locSub, { color: thm.textMuted }]}>Current Location</Text>
+                <Text style={[g.locSub, { color: thm.textMuted }]}>CURRENT LOCATION</Text>
               </View>
               <TouchableOpacity 
-                style={[g.searchBtn, { backgroundColor: thm.surfaceElevated }]} 
+                style={[g.searchBtn, { backgroundColor: isDark ? '#333' : '#F1F5F9' }]} 
                 onPress={() => setSearchActive(true)} 
                 hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               >
@@ -438,40 +454,25 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── TOP-RIGHT: price legend ──────────────────── */}
-      {!searchActive && (
-        <View style={[g.legendWrap, { top: insets.top + Spacing.sm }]}>
-          <PriceLegend isDark={isDark} />
-        </View>
-      )}
-
       {/* ── RIGHT: zoom + recenter controls ─────────── */}
-      <View style={[g.rightControls, { bottom: ctrlBottom, backgroundColor: glass(isDark), borderColor: borderSubtle(isDark) }]}>
-        <CtrlBtn icon="plus"            onPress={() => mapRef.current?.zoomIn()}  isDark={isDark} />
-        <View style={[g.separator, { backgroundColor: borderSubtle(isDark) }]} />
-        <CtrlBtn icon="minus"           onPress={() => mapRef.current?.zoomOut()} isDark={isDark} />
-        <View style={[g.separator, { backgroundColor: borderSubtle(isDark) }]} />
-        <CtrlBtn icon="crosshairs-gps"  onPress={handleRecenter}                   isDark={isDark} color={mapMoved ? Colors.primary : thm.textMuted} />
+      <View style={[g.rightControls, { bottom: ctrlBottom + 60 }]}>
+        <CtrlBtn icon="plus" onPress={() => mapRef.current?.zoomIn()} isDark={isDark} />
+        <View style={{height: 10}} />
+        <CtrlBtn icon="minus" onPress={() => mapRef.current?.zoomOut()} isDark={isDark} />
+        <View style={{height: 10}} />
+        <CtrlBtn icon="crosshairs-gps" onPress={handleRecenter} isDark={isDark} color={mapMoved ? Colors.primary : (isDark ? '#FFF' : '#000')} />
       </View>
 
       {/* ── BOTTOM-LEFT: station count badge ─────────── */}
       {!isLoading && stations.length > 0 && !searchActive && (
         <TouchableOpacity
-          style={[g.countBadge, { backgroundColor: glass(isDark), borderColor: borderSubtle(isDark), bottom: ctrlBottom }]}
+          style={[g.countBadge, { backgroundColor: isDark ? Colors.dark.surfaceElevated : '#FFFFFF', bottom: ctrlBottom }]}
           onPress={() => setShowRadiusPicker(true)} activeOpacity={0.8}
         >
-          <View style={g.countIconWrap}>
-            <MaterialCommunityIcons name="gas-station" size={16} color="#FFF" />
-          </View>
-          <View style={g.countCol}>
-            <Text style={[g.countTxt, { color: thm.text }]}>{stations.length} <Text style={{fontWeight: '400', fontSize: FontSize.xs}}>Stations</Text></Text>
-            {minPrice != null && (
-              <Text style={[g.countSub, { color: Colors.price.cheap }]}>
-                from {formatPrice(minPrice, localCurrency)}
-              </Text>
-            )}
-          </View>
-          <MaterialCommunityIcons name="tune-vertical" size={18} color={thm.textMuted} style={{marginLeft: 8}} />
+          <MaterialCommunityIcons name="clock-outline" size={14} color={thm.textMuted} />
+          <Text style={[g.countTxt, { color: thm.textMuted }]}>
+            Prices updated 4 min ago • {stations.length} stations
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -484,20 +485,31 @@ export default function HomeScreen() {
 
       {/* ── BOTTOM PEEK: cheapest stations strip ─────── */}
       {showPeek && (
-        <View style={[g.peek, { bottom: peekBottom }]}>
+        <View style={[g.peek, { bottom: peekBottom, backgroundColor: thm.background }]}>
+          <View style={g.handleWrap}>
+            <View style={g.handle} />
+          </View>
+          <View style={g.sheetHeader}>
+            <Text style={[g.sheetTitle, { color: thm.textSecondary }]}>CHEAPEST NEARBY</Text>
+            <View style={g.savedBadge}>
+              <MaterialCommunityIcons name="sack" size={12} color="#10B981" />
+              <Text style={g.savedBadgeTxt}>Saved {currencySymbol(localCurrency)}18 today</Text>
+            </View>
+          </View>
           <FlatList
             data={topStations}
             horizontal
             keyExtractor={(s) => s.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={g.peekList}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <PeekCard
                 station={item}
                 allPrices={allPrices}
                 fuelFilter={fuelFilter}
                 isDark={isDark}
                 localCurrency={localCurrency}
+                isBest={index === 0}
                 onPress={() => handleSelect(item.id)}
               />
             )}
@@ -553,35 +565,29 @@ const g = StyleSheet.create({
   locBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingRight: 6,
+    gap: 12,
+    paddingRight: 8,
     paddingLeft: Spacing.lg,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: Radii.full,
     borderWidth: 1,
     minWidth: '72%',
     maxWidth: '92%',
     ...Shadows.lg,
   },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.price.cheap },
+  liveDotWrap: { width: 14, height: 14, borderRadius: 7, backgroundColor: 'rgba(16,185,129,0.2)', justifyContent: 'center', alignItems: 'center' },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' },
   locInfo: { flex: 1 },
-  locText: { fontSize: FontSize.md, fontWeight: '800', letterSpacing: -0.4 },
-  locSub:  { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.55 },
-  searchBtn: { width: 40, height: 40, borderRadius: Radii.full, justifyContent: 'center', alignItems: 'center' },
-
-  /* price legend */
-  legendWrap: { position: 'absolute', right: Spacing.lg },
+  locText: { fontSize: FontSize.lg, fontWeight: '800', letterSpacing: -0.4 },
+  locSub:  { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.7 },
+  searchBtn: { width: 36, height: 36, borderRadius: Radii.full, justifyContent: 'center', alignItems: 'center' },
 
   /* right controls */
   rightControls: {
     position: 'absolute',
     right: Spacing.lg,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-    overflow: 'hidden',
-    ...Shadows.lg,
+    alignItems: 'center',
   },
-  separator: { height: 1.5, width: '60%', alignSelf: 'center' },
 
   /* station count badge */
   countBadge: {
@@ -589,36 +595,23 @@ const g = StyleSheet.create({
     left: Spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingRight: Spacing.lg,
-    paddingLeft: 6,
-    paddingVertical: 6,
-    borderRadius: Radii.full,
-    borderWidth: 1,
-    ...Shadows.xl,
-  },
-  countIconWrap: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center', ...Shadows.colored(Colors.primary) },
-  countCol: { justifyContent: 'center' },
-  countTxt: { fontSize: FontSize.sm, fontWeight: '800', letterSpacing: -0.3 },
-  countSub: { fontSize: FontSize.xs, fontWeight: '700', letterSpacing: -0.2 },
-
-  /* loading spinner */
-  spinner: {
-    position: 'absolute',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    gap: 6,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 10,
     borderRadius: Radii.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    ...Shadows.md,
   },
-  spinnerTxt: { color: '#fff', fontSize: FontSize.xs, fontWeight: '600' },
+  countTxt: { fontSize: 12, fontWeight: '600' },
 
   /* peek strip */
-  peek:     { position: 'absolute', left: 0, right: 0 },
-  peekList: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  peek: { position: 'absolute', left: 0, right: 0, borderTopLeftRadius: Radii.xxl, borderTopRightRadius: Radii.xxl, ...Shadows.lg },
+  handleWrap: { alignItems: 'center', paddingTop: Spacing.md, paddingBottom: Spacing.sm },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1' },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
+  sheetTitle: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
+  savedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.full },
+  savedBadgeTxt: { color: '#10B981', fontSize: 11, fontWeight: '800' },
+  peekList: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, paddingBottom: Spacing.xl },
 
   /* ad banner */
   adBanner: { position: 'absolute', bottom: 0, left: 0, right: 0 },

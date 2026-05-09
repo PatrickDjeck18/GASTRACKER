@@ -5,8 +5,8 @@ import type { RegionalFuelPrice, GasPriceRegion } from '../types/gasPrice';
 
 // Local cache constants
 const LOCAL_CACHE_PREFIX = '@gemini_regional_cache_v2_';
-const LOCAL_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours for local cache
-const GLOBAL_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours for Firebase cache
+const LOCAL_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for local cache
+const GLOBAL_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for Firebase cache
 const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes hot in-memory cache
 
 type MemoryCacheEntry = {

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -30,6 +31,14 @@ export default function StationListScreen() {
     radius: searchRadius,
     enabled: !!coords,
   });
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (coords) {
+        void refetch();
+      }
+    }, [refetch, coords])
+  );
 
   const allPrices = useMemo(
     () => stations.map((s) => bestPrice(s, fuelFilter)?.price).filter(Boolean) as number[],

@@ -1,6 +1,6 @@
 import './global.css';
 import React, { useEffect, useMemo } from 'react';
-import { useColorScheme, View, StyleSheet, StatusBar, Platform, LogBox } from 'react-native';
+import { useColorScheme, View, StyleSheet, StatusBar, Platform, LogBox, AppState, type AppStateStatus } from 'react-native';
 
 // Suppress benign Expo background errors in development
 LogBox.ignoreLogs([
@@ -10,7 +10,7 @@ LogBox.ignoreLogs([
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { initAdMob } from './src/utils/admobInit';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -83,6 +83,16 @@ export default function App() {
   
   useEffect(() => {
     void initAdMob();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (status: AppStateStatus) => {
+      if (Platform.OS !== 'web') {
+        focusManager.setFocused(status === 'active');
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   return (

@@ -6,6 +6,7 @@ import {
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useIsDark }      from '../hooks/useIsDark';
 import { useAppStore }    from '../store/useAppStore';
@@ -190,10 +191,18 @@ export default function SavingsScreen() {
   const addSavedCalculation    = useAppStore((s) => s.addSavedCalculation);
   const removeSavedCalculation = useAppStore((s) => s.removeSavedCalculation);
 
-  const { data: stations = [] } = useStations({
+  const { data: stations = [], refetch } = useStations({
     lat: coords?.latitude, lon: coords?.longitude,
     radius: searchRadius, enabled: !!coords,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (coords) {
+        void refetch();
+      }
+    }, [refetch, coords])
+  );
 
   /* ── sorted stations with price ─── */
   const rankedStations = useMemo(() => {

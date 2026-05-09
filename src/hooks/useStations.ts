@@ -17,7 +17,9 @@ export function useStations({
   enabled = true,
 }: UseStationsOptions) {
   const queryClient = useQueryClient();
-  const queryKey = ['stations', lat, lon, radius];
+  const roundedLat = lat != null ? Math.round(lat * 10000) / 10000 : undefined;
+  const roundedLon = lon != null ? Math.round(lon * 10000) / 10000 : undefined;
+  const queryKey = ['stations', roundedLat, roundedLon, radius];
 
   return useQuery<Station[], Error>({
     queryKey,

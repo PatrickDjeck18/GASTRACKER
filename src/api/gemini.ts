@@ -166,7 +166,7 @@ export async function fetchFuelPricesWithGemini(
 
     // 4. Cache successful result locally AND globally (6 hours)
     await setCachedResult(cacheKey, result);
-    const ttlMs = 6 * 60 * 60 * 1000; // 6 hours
+    const ttlMs = 24 * 60 * 60 * 1000; // 24 hours
     await saveApiResponseCache('gemini/fuel-prices', globalCacheKey, result, ttlMs);
     console.log('[Gemini] Successfully fetched and cached prices for', stationName);
 

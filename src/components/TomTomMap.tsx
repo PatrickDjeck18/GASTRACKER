@@ -64,26 +64,38 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
     body{margin:0;padding:0;overflow:hidden;background:${bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
     #map{height:100vh;width:100vw;background:${bg}}
     .tt-marker{
+      position:relative;
+      display:inline-block;
+      width:max-content;
       cursor:pointer;
       border-radius:20px;
-      padding:5px 10px;
+      padding:4px 8px;
       color:#fff;
       font-weight:800;
-      font-size:12px;
-      box-shadow:0 2px 8px rgba(0,0,0,.3);
+      font-size:11px;
+      background-color:var(--marker-bg, #10b981);
+      box-shadow:0 4px 10px rgba(0,0,0,.15);
       white-space:nowrap;
       letter-spacing:-.3px;
-      border:1.5px solid rgba(255,255,255,.3);
       user-select:none;
-      transition:background-color .2s, box-shadow .2s;
-      min-width:40px;
+      transition:transform .2s, box-shadow .2s;
+      min-width:30px;
       text-align:center;
     }
+    .tt-marker::after{
+      content:'';
+      position:absolute;
+      bottom:-4px;
+      left:50%;
+      margin-left:-4px;
+      border-width:4px 4px 0;
+      border-style:solid;
+      border-color:var(--marker-bg, #10b981) transparent transparent transparent;
+    }
     .tt-marker.selected{
-      font-size: 14px!important;
-      padding: 7px 12px!important;
       z-index:1000!important;
-      box-shadow:0 0 0 3px rgba(255,255,255,.9),0 6px 20px rgba(0,0,0,.4)!important;
+      transform:scale(1.1);
+      box-shadow:0 0 0 2px #fff, 0 6px 20px rgba(0,0,0,.3)!important;
     }
     .udot-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px}
     @keyframes pr{0%{transform:scale(.8);opacity:.85}100%{transform:scale(2.6);opacity:0}}
@@ -202,7 +214,7 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
           if(!mk){
             var el=document.createElement('div');
             el.className='tt-marker' + (isSel ? ' selected' : '');
-            el.style.backgroundColor=tc;
+            el.style.setProperty('--marker-bg', tc);
             el.innerText=lbl;
             el.onclick=function(e){
               e.stopPropagation();
@@ -213,12 +225,8 @@ export const TomTomMap = forwardRef<TomTomMapRef, Props>(function TomTomMapInner
           } else {
             var mel=mk.getElement();
             if(mel) {
-              // Convert hex/named color to rgb if needed or just blindly assign? 
-              // Better: only assign if string is different to prevent reflow jumping.
               if (mel.innerText !== lbl) { mel.innerText = lbl; }
-              // CSS applies tc directly, which might be rgb(...) when read back.
-              // We'll just enforce the property directly. The engine optimizes it if identical.
-              mel.style.backgroundColor = tc;
+              mel.style.setProperty('--marker-bg', tc);
               isSel ? mel.classList.add('selected') : mel.classList.remove('selected');
             }
           }

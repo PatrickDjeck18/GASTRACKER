@@ -2,9 +2,9 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { logger } = require('firebase-functions');
 
-// Set global options for all v2 functions
 setGlobalOptions({ 
-  region: 'us-central1'
+  region: 'us-central1',
+  maxInstances: 1
 });
 
 // Common options
@@ -191,7 +191,7 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
         `Address: ${address}`,
         ``,
         `STRATEGY (follow in order):`,
-        `1. Search for the exact station's current prices. If found, use them.`,
+        `1. Search for the exact station's current prices. Use the most recent source found and ignore redundant or outdated articles to minimize context.`,
         `2. If exact prices are unavailable, use current average prices for the city/area near the address.`,
         `3. If city prices are unavailable, use the country average prices.`,
         `4. NEVER return an empty prices array — always provide a best-effort estimate with the fallback level noted in attribution.`,
@@ -207,7 +207,7 @@ exports.geminiFuelPrices = onRequest(GEMINI_OPTS, (req, res) => {
 
       const client = new GoogleGenerativeAI(key);
       // Model fallback chain: fast → lite (used when rate-limited)
-      const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+      const MODEL_CHAIN = ['gemini-2.5-flash-lite', 'gemini-2.0-flash'];
       const MAX_RETRIES = 3;
       const BASE_DELAY_MS = 1000;
 
@@ -303,7 +303,7 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
 
       const client = new GoogleGenerativeAI(key);
       const model = client.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-flash-lite',
         tools: [{ googleSearch: {} }]
       });
 
