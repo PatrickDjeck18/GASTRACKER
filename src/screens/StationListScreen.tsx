@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -31,6 +31,13 @@ export default function StationListScreen() {
     radius: searchRadius,
     enabled: !!coords,
   });
+
+  const setCachedStations = useAppStore((s) => s.setCachedStations);
+  const navigation = useNavigation<any>();
+
+  React.useEffect(() => {
+    if (stations.length > 0) setCachedStations(stations);
+  }, [stations, setCachedStations]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -68,7 +75,13 @@ export default function StationListScreen() {
         station={item.data}
         allPrices={allPrices}
         fuelFilter={fuelFilter}
-        onPress={() => setSelectedStation(item.data.id)}
+        onPress={() => {
+          setSelectedStation(item.data.id);
+          navigation.navigate('StationDetail', {
+            stationId: item.data.id,
+            allPrices,
+          });
+        }}
       />
     );
   };

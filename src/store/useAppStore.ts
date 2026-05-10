@@ -44,6 +44,7 @@ interface AppState {
 
   /* stations */
   stations: Station[];
+  cachedStations: Station[];
   selectedStationId: string | null;
 
   /* filters & sorting */
@@ -68,6 +69,7 @@ interface AppState {
   setUserLocation: (lat: number, lon: number, country?: string | null) => void;
   setLocationName: (name: string | null) => void;
   setStations: (stations: Station[]) => void;
+  setCachedStations: (stations: Station[]) => void;
   setSelectedStation: (id: string | null) => void;
   setFilters: (patch: Partial<FilterState>) => void;
   setSortMode: (mode: SortMode) => void;
@@ -121,6 +123,7 @@ export const useAppStore = create<AppState>()(
       countryCode: null,
       locationName: null,
       stations: [],
+      cachedStations: [],
       selectedStationId: null,
       filters: defaultFilters,
       sortMode: 'distance',
@@ -139,6 +142,7 @@ export const useAppStore = create<AppState>()(
       },
       setLocationName: (locationName) => set({ locationName }),
       setStations: (stations) => set({ stations }),
+      setCachedStations: (stations) => set({ cachedStations: stations }),
       setSelectedStation: (selectedStationId) => set({ selectedStationId }),
       setFilters: (patch) =>
         set({ filters: { ...get().filters, ...patch } }),

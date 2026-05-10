@@ -135,7 +135,7 @@ async function enrichAllStationsInBackground(
       .map(({ station, prices, grounded, attribution }) => ({
         station,
         fuelPrices: prices,
-        priceSource: grounded ? 'gemini-grounded' : 'gemini',
+        priceSource: (grounded ? 'gemini-grounded' : 'gemini') as import('../types/station').PriceSource,
         priceAttribution: attribution,
       }));
 

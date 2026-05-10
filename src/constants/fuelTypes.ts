@@ -26,7 +26,7 @@ export const DEFAULT_SEARCH_RADIUS = 5000;
 export const MAX_SEARCH_RADIUS = 50_000;
 
 /** Results cap per query */
-export const DEFAULT_RESULT_LIMIT = 10;
+export const DEFAULT_RESULT_LIMIT = 15;
 
 /** Map defaults */
 export const DEFAULT_LAT_DELTA = 0.045;

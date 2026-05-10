@@ -8,6 +8,7 @@ import { formatDistance } from '../utils/geo';
 import { bestPrice, formatPrice, getPriceTier, type PriceTier } from '../utils/price';
 import { getLocalCurrencyCode } from '../services/fuelPriceService';
 import type { Station } from '../types/station';
+import { AnimatedTouchable } from './AnimatedTouchable';
 
 interface StationCardProps {
   station: Station;
@@ -27,37 +28,16 @@ export function StationCard({ station, allPrices, fuelFilter, onPress }: Station
   const priceLabel = best ? formatPrice(best.price, localCurrency) : '—';
   const fuelLabel = best?.fuelType ?? '';
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-      speed: 20,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-    }).start();
-  };
-
   return (
-    <TouchableWithoutFeedback
+    <AnimatedTouchable
       onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            backgroundColor: t.card,
-            borderColor: t.cardBorder,
-            transform: [{ scale: scaleAnim }],
+      hapticFeedback="Light"
+      activeOpacity={0.9}
+      style={[
+        styles.card,
+        {
+          backgroundColor: t.card,
+          borderColor: t.cardBorder,
           },
           isDark ? undefined : Shadows.sm,
         ]}
@@ -100,8 +80,7 @@ export function StationCard({ station, allPrices, fuelFilter, onPress }: Station
             <PriceTag label={priceLabel} tier={tier} animate={tier === 'cheap'} />
           </View>
         </View>
-      </Animated.View>
-    </TouchableWithoutFeedback>
+    </AnimatedTouchable>
   );
 }
 

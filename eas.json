@@ -18,8 +18,8 @@
       "env": {
         "GOOGLE_MAPS_API_KEY": "AIzaSyBPmmeTt9XA-TLj_6jbl-w63DbzhJ2LUxg",
         "TOMTOM_API_KEY": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
-        "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~1091748711",
-        "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2973770046",
+        "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~4974517315",
+        "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2350399570",
         "GOOGLE_AI_API_KEY": "AIzaSyChP_EFZPVTq8StOHNuoG2YgWFLf6bVD04",
         "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc"
       }
@@ -38,8 +38,8 @@
         "GOOGLE_MAPS_API_KEY": "AIzaSyBPmmeTt9XA-TLj_6jbl-w63DbzhJ2LUxg",
         "TOMTOM_API_KEY": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
         "TOMTOM_MAPS_PUBLIC_KEY": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
-        "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~1091748711",
-        "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2973770046",
+        "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~4974517315",
+        "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2350399570",
         "GOOGLE_AI_API_KEY": "AIzaSyChP_EFZPVTq8StOHNuoG2YgWFLf6bVD04",
         "FIREBASE_API_KEY": "AIzaSyCvHaxxgftJgvmefWKK7JgVTaC5xwQw1_8",
         "FIREBASE_AUTH_DOMAIN": "fuelprice-d64ae.firebaseapp.com",
@@ -50,8 +50,8 @@
         "FIREBASE_MEASUREMENT_ID": "G-EP5QNBNPWZ",
         "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net",
         "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc",
-        "ANDROID_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/9009007389",
-        "IOS_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/6718932147",
+        "ANDROID_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/3663481248",
+        "IOS_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/4613600838",
         "DEEPSEEK_API_KEY": "sk-1a019e37553a482b8f0555719be623f5"
       }
     },
@@ -60,7 +60,7 @@
       "channel": "production",
       "android": {
         "buildType": "app-bundle",
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "ios": {
         "enterpriseProvisioning": "universal"
@@ -69,8 +69,8 @@
         "GOOGLE_MAPS_API_KEY": "AIzaSyBPmmeTt9XA-TLj_6jbl-w63DbzhJ2LUxg",
         "TOMTOM_API_KEY": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
         "TOMTOM_MAPS_PUBLIC_KEY": "cOcOyqExivMW88thxXdsJUUkvoJqK40q",
-        "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~1091748711",
-        "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2973770046",
+        "ANDROID_ADMOB_APP_ID": "ca-app-pub-4253750298784159~4974517315",
+        "IOS_ADMOB_APP_ID": "ca-app-pub-4253750298784159~2350399570",
         "GOOGLE_AI_API_KEY": "AIzaSyChP_EFZPVTq8StOHNuoG2YgWFLf6bVD04",
         "FIREBASE_API_KEY": "AIzaSyCvHaxxgftJgvmefWKK7JgVTaC5xwQw1_8",
         "FIREBASE_AUTH_DOMAIN": "fuelprice-d64ae.firebaseapp.com",
@@ -81,8 +81,8 @@
         "FIREBASE_MEASUREMENT_ID": "G-EP5QNBNPWZ",
         "FIREBASE_FUNCTIONS_BASE_URL": "https://us-central1-fuelprice-d64ae.cloudfunctions.net",
         "RAPIDAPI_KEY": "e017978b26msha8eb61a482e14e0p17c7dajsnb6ef1fbab8fc",
-        "ANDROID_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/9009007389",
-        "IOS_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/6718932147",
+        "ANDROID_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/3663481248",
+        "IOS_ADMOB_NATIVE_ID": "ca-app-pub-4253750298784159/4613600838",
         "DEEPSEEK_API_KEY": "sk-1a019e37553a482b8f0555719be623f5"
       }
     }

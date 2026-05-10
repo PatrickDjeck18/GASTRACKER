@@ -15,8 +15,8 @@ const withDefaultCFBundleDisplayName = (config: ExpoConfig) => {
 
 const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ...config,
-    name: config.name || 'Cheap Fuel Price Global',
-    slug: config.slug || 'cheap-fuel-global',
+    name: config.name || 'GasePrice',
+    slug: config.slug || 'gaseprice',
 
     version: config.version || '1.0.16',
     orientation: config.orientation || 'portrait',
@@ -30,7 +30,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     },
     ios: {
         supportsTablet: true,
-        bundleIdentifier: 'cheap.fuel.price.global',
+        bundleIdentifier: config.ios?.bundleIdentifier || 'com.fuel.gase.app',
         buildNumber: config.ios?.buildNumber || '18',
         infoPlist: {
             ITSAppUsesNonExemptEncryption: false,
@@ -58,7 +58,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             foregroundImage: './assets/adaptive-icon.png',
             backgroundColor: '#0d47a1',
         },
-        package: 'com.fuel.price.global',
+        package: config.android?.package || 'com.fuel.gase.app',
         versionCode: config.android?.versionCode || 19,
         permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS'],
     },
@@ -104,6 +104,9 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
         googleAiApiKey: process.env.GOOGLE_AI_API_KEY ?? 'AIzaSyDLEMzVHSYVEsgeqG1mTyFbdNmk4weJ6Ys',
         admobNativeAndroidId: process.env.ANDROID_ADMOB_NATIVE_ID ?? '',
         admobNativeIosId: process.env.IOS_ADMOB_NATIVE_ID ?? '',
+        eas: {
+            projectId: "cb9fe762-4196-4d5e-a524-b8df32b0323a"
+        }
     },
 });
 

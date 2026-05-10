@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Cheap Fuel Price Global",
-    "slug": "cheap-fuel-global",
+    "name": "GasPrices",
+    "slug": "gaseprice",
     "version": "1.0.16",
     "runtimeVersion": {
       "policy": "appVersion"
@@ -10,9 +10,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "updates": {
-      "url": "https://u.expo.dev/198af9cf-d487-418f-9bda-de41144d64c1"
-    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,11 +17,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "cheap.fuel.price.global",
-      "buildNumber": "18",
+      "bundleIdentifier": "com.fuel.gase.app",
+      "buildNumber": "19",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Cheap Fuel Price Global uses your location to identify fuel stations in your immediate area and provide accurate, real-time price comparisons for your specific location. This allows you to find the lowest prices nearby.",
+        "NSLocationWhenInUseUsageDescription": "GasePrice uses your location to identify fuel stations in your immediate area and provide accurate, real-time price comparisons for your specific location. This allows you to find the lowest prices nearby.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Your location is used only while the app is active to map nearby fuel stations. We do not track your location in the background.",
         "LSApplicationQueriesSchemes": [
           "tomtomgo",
@@ -121,8 +118,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.fuel.price.global",
-      "versionCode": 19,
+      "package": "com.fuel.gase.app",
+      "versionCode": 20,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -150,8 +147,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-4253750298784159~1091748711",
-          "iosAppId": "ca-app-pub-4253750298784159~2973770046"
+          "androidAppId": "ca-app-pub-4253750298784159~4974517315",
+          "iosAppId": "ca-app-pub-4253750298784159~2350399570"
         }
       ],
       [
@@ -173,11 +170,8 @@
       "firebaseFunctionsBaseUrl": "",
       "firebaseFunctionsRequireAuth": "false",
       "googleAiApiKey": "AIzaSyDLEMzVHSYVEsgeqG1mTyFbdNmk4weJ6Ys",
-      "admobNativeAndroidId": "ca-app-pub-4253750298784159/9009007389",
-      "admobNativeIosId": "ca-app-pub-4253750298784159/6718932147",
-      "eas": {
-        "projectId": "58d09c3f-9f29-49a9-9c5c-eab4a5052a9c"
-      }
+      "admobNativeAndroidId": "ca-app-pub-4253750298784159/3663481248",
+      "admobNativeIosId": "ca-app-pub-4253750298784159/4613600838"
     }
   }
 }

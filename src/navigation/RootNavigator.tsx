@@ -12,15 +12,36 @@ import { AdBanner } from '../components/AdBanner';
 import { navigationRef } from './navigationRef';
 
 import DashboardScreen from '../screens/DashboardScreen';
-import HomeScreen from '../screens/HomeScreen';
 import StationListScreen from '../screens/StationListScreen';
 import GasPricesScreen from '../screens/GasPricesScreen';
 import SavingsScreen from '../screens/SavingsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import StationDetailScreen from '../screens/StationDetailScreen';
+import InAppNavigationScreen from '../screens/InAppNavigationScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={DashboardScreen} />
+      <Stack.Screen name="StationDetail" component={StationDetailScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="InAppNavigation" component={InAppNavigationScreen} options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
+    </Stack.Navigator>
+  );
+}
+
+function ListStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ListHome" component={StationListScreen} />
+      <Stack.Screen name="StationDetail" component={StationDetailScreen} options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="InAppNavigation" component={InAppNavigationScreen} options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
+    </Stack.Navigator>
+  );
+}
 
 function SettingsStack() {
   return (
@@ -53,129 +74,116 @@ export function RootNavigator() {
     [isDark],
   );
 
-  const bottomPadding = Math.max(insets.bottom, 8); // Minimum padding for aesthetics
-
   return (
     <View style={{ flex: 1, backgroundColor: navTheme.colors.background }}>
       <NavigationContainer ref={navigationRef} theme={navTheme}>
-      <Tab.Navigator
-        screenOptions={{
-          headerTitle: t('app.title'),
-          headerTitleStyle: styles.headerTitle,
-          headerStyle: {
-            backgroundColor: isDark ? Colors.dark.surfaceElevated : Colors.light.surfaceElevated,
-            elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: isDark ? Colors.dark.border : Colors.light.border,
-          },
-          headerTintColor: isDark ? Colors.dark.text : Colors.light.text,
-          tabBarActiveTintColor: Colors.primary,
-          tabBarInactiveTintColor: isDark ? Colors.dark.textMuted : Colors.light.textMuted,
-          tabBarStyle: {
-            backgroundColor: isDark ? Colors.dark.tabBar : Colors.light.tabBar,
-            borderTopColor: isDark ? Colors.dark.tabBarBorder : Colors.light.tabBarBorder,
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: Colors.primary,
+            tabBarInactiveTintColor: isDark ? Colors.dark.textMuted : Colors.light.textMuted,
+            tabBarStyle: {
+              backgroundColor: isDark ? Colors.dark.tabBar : Colors.light.tabBar,
+              borderTopColor: isDark ? Colors.dark.tabBarBorder : Colors.light.tabBarBorder,
+              borderTopWidth: 1,
+              paddingBottom: Platform.OS === 'ios' ? 0 : 10,
+              paddingTop: 10,
+              height: Platform.OS === 'ios' ? 80 : 66,
+              elevation: 20,
+              shadowColor: Colors.primary,
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+            },
+            tabBarLabelStyle: {
+              fontSize: 10,
+              fontWeight: '700',
+              marginTop: 2,
+              letterSpacing: 0.2,
+              marginBottom: Platform.OS === 'ios' ? 0 : 2,
+            },
+            tabBarItemStyle: { padding: 2 },
+          }}
+        >
+          <Tab.Screen
+            name="HomeTab"
+            component={HomeStack}
+            options={{
+              title: t('tabs.home') || 'Home',
+              tabBarIcon: ({ color, size, focused }) => (
+                <View style={focused ? styles.activeIconWrap : undefined}>
+                  <MaterialCommunityIcons name={focused ? 'home-variant' : 'home-variant-outline'} color={color} size={size + 2} />
+                </View>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="ListTab"
+            component={ListStack}
+            options={{
+              title: t('tabs.list'),
+              tabBarIcon: ({ color, size, focused }) => (
+                <View style={focused ? styles.activeIconWrap : undefined}>
+                  <MaterialCommunityIcons name="format-list-bulleted" color={color} size={size + 2} />
+                </View>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="PricesTab"
+            component={GasPricesScreen}
+            options={{
+              title: t('tabs.prices'),
+              tabBarIcon: ({ color, size, focused }) => (
+                <View style={focused ? styles.activeIconWrap : undefined}>
+                  <MaterialCommunityIcons name={focused ? 'chart-line' : 'chart-line-variant'} color={color} size={size + 2} />
+                </View>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="SavingsTab"
+            component={SavingsScreen}
+            options={{
+              title: t('tabs.savings'),
+              tabBarIcon: ({ color, size, focused }) => (
+                <View style={focused ? styles.activeIconWrap : undefined}>
+                  <MaterialCommunityIcons name={focused ? 'piggy-bank' : 'piggy-bank-outline'} color={color} size={size + 2} />
+                </View>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="SettingsTab"
+            component={SettingsStack}
+            options={{
+              title: t('tabs.settings'),
+              tabBarIcon: ({ color, size, focused }) => (
+                <View style={focused ? styles.activeIconWrap : undefined}>
+                  <MaterialCommunityIcons name={focused ? 'cog' : 'cog-outline'} color={color} size={size + 2} />
+                </View>
+              ),
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+      <View style={{ paddingBottom: insets.bottom }}>
+        <AdBanner
+          style={{
             borderTopWidth: StyleSheet.hairlineWidth,
-            paddingBottom: Platform.OS === 'ios' ? 0 : 8,
-            paddingTop: 8,
-            height: 62,
-            elevation: 0,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-          },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '700',
-            marginTop: 2,
-            letterSpacing: 0.3,
-            marginBottom: Platform.OS === 'ios' ? 0 : 4,
-          },
-          tabBarItemStyle: {
-            padding: 3,
-          },
-        }}
-      >
-        <Tab.Screen
-          name="DashboardTab"
-          component={DashboardScreen}
-          options={{
-            title: t('tabs.home') || 'Home',
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="home-variant" color={color} size={size + 2} />
-            ),
+            borderTopColor: isDark ? Colors.dark.tabBarBorder : Colors.light.tabBarBorder,
           }}
         />
-        <Tab.Screen
-          name="MapTab"
-          component={HomeScreen}
-          options={{
-            title: t('tabs.map'),
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="map-marker-radius" color={color} size={size + 2} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="ListTab"
-          component={StationListScreen}
-          options={{
-            title: t('tabs.list'),
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="format-list-bulleted" color={color} size={size + 2} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="PricesTab"
-          component={GasPricesScreen}
-          options={{
-            title: t('tabs.prices'),
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="chart-line" color={color} size={size + 2} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="SavingsTab"
-          component={SavingsScreen}
-          options={{
-            title: t('tabs.savings'),
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="piggy-bank-outline" color={color} size={size + 2} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="SettingsTab"
-          component={SettingsStack}
-          options={{
-            title: t('tabs.settings'),
-            headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="cog-outline" color={color} size={size + 2} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
-    <View style={{ paddingBottom: insets.bottom }}>
-      <AdBanner style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: isDark ? Colors.dark.tabBarBorder : Colors.light.tabBarBorder }} />
+      </View>
     </View>
-  </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
-    fontWeight: '800',
-    fontSize: 18,
-    letterSpacing: -0.3,
+  activeIconWrap: {
+    backgroundColor: Colors.primaryMuted,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
 });

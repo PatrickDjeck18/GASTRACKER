@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  ScrollView, FlatList, Modal, Pressable,
+  ScrollView, FlatList, Modal, Pressable, Animated as RNAnimated, Easing,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Animated, { FadeInDown, FadeInRight, Layout } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInRight, FadeOutDown, Layout } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,7 +18,6 @@ import { useAppStore }        from '../store/useAppStore';
 import { useInterstitialAd }  from '../hooks/useInterstitialAd';
 
 import { TomTomMap, type TomTomMapRef } from '../components/TomTomMap';
-import { StationDetailModal } from '../components/StationDetailModal';
 import { EmptyState }         from '../components/EmptyState';
 import { SearchBar }          from '../components/SearchBar';
 
@@ -48,10 +47,183 @@ const glass = (dark: boolean) =>
 const borderSubtle = (dark: boolean) =>
   dark ? Colors.dark.glassBorder : Colors.light.glassBorder;
 
+/* ── animated shimmer hook ───────────────────────────── */
+function useShimmer() {
+  const anim = useRef(new RNAnimated.Value(0)).current;
+  useEffect(() => {
+    RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(anim, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        RNAnimated.timing(anim, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+    return () => anim.stopAnimation();
+  }, [anim]);
+  return anim;
+}
+
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SUB-COMPONENTS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── Price Fetch Loading Overlay ────────────────────── */
+function PriceFetchOverlay({ isDark, stationCount }: { isDark: boolean; stationCount: number }) {
+  const shimmer = useShimmer();
+  const pulseAnim = useRef(new RNAnimated.Value(1)).current;
+  
+  useEffect(() => {
+    RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(pulseAnim, { toValue: 1.08, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        RNAnimated.timing(pulseAnim, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+    return () => pulseAnim.stopAnimation();
+  }, [pulseAnim]);
+
+  const bgColor = isDark ? 'rgba(10,10,15,0.82)' : 'rgba(255,248,243,0.88)';
+  const textColor = isDark ? '#F8F8FC' : '#1A0A00';
+  const mutedColor = isDark ? '#9898B0' : '#6B4535';
+  const cardBg = isDark ? 'rgba(26,26,36,0.95)' : 'rgba(255,255,255,0.96)';
+  const skeletonBg = isDark ? '#1C1C28' : '#F5E8DC';
+  const skeletonHighlight = isDark ? '#252538' : '#FFE8D6';
+
+  return (
+    <View style={ov.overlay} pointerEvents="none">
+      {/* Blurred glass bg */}
+      <View style={[ov.bg, { backgroundColor: bgColor }]} />
+
+      {/* Center content */}
+      <View style={ov.center}>
+        {/* Animated fuel icon */}
+        <RNAnimated.View style={[ov.iconWrap, { transform: [{ scale: pulseAnim }], backgroundColor: isDark ? '#1A1A24' : '#FFF4EC' }]}>
+          <MaterialCommunityIcons name="gas-station" size={40} color={Colors.primary} />
+          <View style={ov.iconGlow} />
+        </RNAnimated.View>
+
+        <Text style={[ov.headline, { color: textColor }]}>Fetching Live Prices</Text>
+        <Text style={[ov.sub, { color: mutedColor }]}>Scanning fuel stations near you…</Text>
+
+        {/* Progress dots */}
+        <View style={ov.dots}>
+          {[0, 1, 2].map((i) => (
+            <RNAnimated.View
+              key={i}
+              style={[
+                ov.dot,
+                { backgroundColor: Colors.primary, opacity: shimmer.interpolate({ inputRange: [0, 1], outputRange: i === 1 ? [1, 0.2] : [0.2, 1] }) },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Skeleton station cards */}
+        <View style={ov.skeletonRow}>
+          {[260, 200, 230].map((w, i) => (
+            <RNAnimated.View
+              key={i}
+              style={[
+                ov.skeletonCard,
+                { width: w, backgroundColor: cardBg, opacity: shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.5 + i * 0.15, 0.9] }) },
+              ]}
+            >
+              <View style={[ov.skTop, { backgroundColor: skeletonBg }]} />
+              <View style={[ov.skLine, { width: '75%', backgroundColor: skeletonBg }]} />
+              <View style={[ov.skLine, { width: '45%', backgroundColor: skeletonHighlight, marginTop: 4 }]} />
+              <View style={[ov.skBtn, { backgroundColor: skeletonBg }]} />
+            </RNAnimated.View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const ov = StyleSheet.create({
+  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 20, justifyContent: 'flex-end' },
+  bg: { ...StyleSheet.absoluteFillObject },
+  center: { alignItems: 'center', paddingBottom: 300, paddingHorizontal: 24 },
+  iconWrap: { width: 88, height: 88, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 20, overflow: 'hidden', ...Shadows.lg },
+  iconGlow: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, backgroundColor: 'rgba(249,115,22,0.18)', borderRadius: 28 },
+  headline: { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.6, marginBottom: 8, textAlign: 'center' },
+  sub: { fontSize: FontSize.sm, fontWeight: '500', opacity: 0.8, textAlign: 'center', marginBottom: 24 },
+  dots: { flexDirection: 'row', gap: 8, marginBottom: 32 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  skeletonRow: { flexDirection: 'row', gap: 12, overflow: 'hidden' },
+  skeletonCard: { borderRadius: Radii.xxl, padding: 16, ...Shadows.md },
+  skTop: { width: '100%', height: 44, borderRadius: Radii.md, marginBottom: 12 },
+  skLine: { height: 12, borderRadius: 6, marginBottom: 6 },
+  skBtn: { width: '100%', height: 36, borderRadius: Radii.xl, marginTop: 8 },
+});
+
+/* ── Hero Stats Strip ───────────────────────────────── */
+function HeroStatsStrip({
+  stations, allPrices, fuelFilter, localCurrency, isDark, searchRadius, onRadiusPress,
+}: {
+  stations: any[]; allPrices: number[]; fuelFilter: string | null;
+  localCurrency: string; isDark: boolean; searchRadius: number; onRadiusPress: () => void;
+}) {
+  const minP = allPrices.length ? Math.min(...allPrices) : null;
+  const maxP = allPrices.length ? Math.max(...allPrices) : null;
+  const sym = currencySymbol(localCurrency);
+  const bgCard = isDark ? Colors.dark.surfaceElevated : '#FFFFFF';
+  const borderC = isDark ? Colors.dark.border : '#E2E8F0';
+  const textC = isDark ? Colors.dark.text : Colors.light.text;
+  const mutedC = isDark ? Colors.dark.textMuted : Colors.light.textMuted;
+  const radKm = (searchRadius / 1000).toFixed(0);
+
+  return (
+    <Animated.View entering={FadeInDown.springify()} style={[hs.strip, { backgroundColor: isDark ? 'rgba(10,10,15,0.90)' : 'rgba(255,255,255,0.92)', borderColor: borderC }]}>
+      {/* Cheapest */}
+      <View style={hs.stat}>
+        <Text style={[hs.statVal, { color: Colors.price.cheap }]}>
+          {minP != null ? `${sym}${minP.toFixed(2)}` : '—'}
+        </Text>
+        <Text style={[hs.statLbl, { color: mutedC }]}>CHEAPEST</Text>
+      </View>
+      <View style={[hs.div, { backgroundColor: borderC }]} />
+      {/* Station count */}
+      <View style={hs.stat}>
+        <Text style={[hs.statVal, { color: textC }]}>{stations.length}</Text>
+        <Text style={[hs.statLbl, { color: mutedC }]}>STATIONS</Text>
+      </View>
+      <View style={[hs.div, { backgroundColor: borderC }]} />
+      {/* Most expensive */}
+      <View style={hs.stat}>
+        <Text style={[hs.statVal, { color: Colors.price.expensive }]}>
+          {maxP != null ? `${sym}${maxP.toFixed(2)}` : '—'}
+        </Text>
+        <Text style={[hs.statLbl, { color: mutedC }]}>HIGHEST</Text>
+      </View>
+      <View style={[hs.div, { backgroundColor: borderC }]} />
+      {/* Radius pill */}
+      <TouchableOpacity style={[hs.radiusPill, { backgroundColor: isDark ? Colors.dark.surfaceHighlight : '#FFF4EC', borderColor: Colors.primary }]} onPress={onRadiusPress} activeOpacity={0.8}>
+        <MaterialCommunityIcons name="map-marker-radius" size={14} color={Colors.primary} />
+        <Text style={[hs.radiusTxt, { color: Colors.primary }]}>{radKm} km</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+const hs = StyleSheet.create({
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 10,
+    borderRadius: Radii.xxl,
+    borderWidth: 1,
+    gap: 4,
+    ...Shadows.lg,
+  },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: 2 },
+  statVal: { fontSize: FontSize.md, fontWeight: '900', letterSpacing: -0.5 },
+  statLbl: { fontSize: 9, fontWeight: '700', letterSpacing: 0.6, marginTop: 1 },
+  div: { width: 1, height: 28, opacity: 0.5 },
+  radiusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radii.full, borderWidth: 1.5 },
+  radiusTxt: { fontSize: 12, fontWeight: '800' },
+});
 
 /* ── Fuel filter chips ──────────────────────────────── */
 function FuelChips({
@@ -290,9 +462,11 @@ export default function HomeScreen() {
   const setLocationName   = useAppStore((s) => s.setLocationName);
   const setFilters        = useAppStore((s) => s.setFilters);
   const setSearchRadius   = useAppStore((s) => s.setSearchRadius);
+  const setCachedStations = useAppStore((s) => s.setCachedStations);
 
   /* ── ads ─── */
   const { maybeShowAd } = useInterstitialAd();
+  const navigation = useNavigation<any>();
 
   /* ── reverse geocode ─── */
   const { data: geo } = useReverseGeocode({ lat: coords?.latitude, lon: coords?.longitude, enabled: !!coords });
@@ -327,6 +501,11 @@ export default function HomeScreen() {
     lat: searchCentre?.latitude, lon: searchCentre?.longitude, radius: searchRadius, enabled: !!searchCentre,
   });
 
+  /* ── cache stations in store for detail screen lookup ─── */
+  useEffect(() => {
+    if (stations.length > 0) setCachedStations(stations);
+  }, [stations, setCachedStations]);
+
   useFocusEffect(
     useCallback(() => {
       if (searchCentre) {
@@ -351,7 +530,7 @@ export default function HomeScreen() {
       [...stations]
         .filter((s) => bestPrice(s, fuelFilter) != null)
         .sort((a, b) => (bestPrice(a, fuelFilter)?.price ?? 0) - (bestPrice(b, fuelFilter)?.price ?? 0))
-        .slice(0, 10),
+        .slice(0, 15),
     [stations, fuelFilter],
   );
 
@@ -365,8 +544,14 @@ export default function HomeScreen() {
 
   /* ── callbacks ─── */
   const handleSelect = useCallback((id: string) => {
-    setSelectedStation(id || null);
-  }, [setSelectedStation]);
+    if (!id) { setSelectedStation(null); return; }
+    setSelectedStation(id);
+    navigation.navigate('StationDetail', {
+      stationId: id,
+      allPrices,
+      stationsQueryKey,
+    });
+  }, [setSelectedStation, navigation, allPrices, stationsQueryKey]);
 
   const handleRecenter = useCallback(() => {
     if (!coords) return;
@@ -451,6 +636,19 @@ export default function HomeScreen() {
 
           {/* Fuel filter chips */}
           <FuelChips selected={fuelFilter} onChange={(k) => setFilters({ fuelType: k })} isDark={isDark} />
+
+          {/* Hero Stats Strip — shows when prices are loaded */}
+          {!isLoading && stations.length > 0 && (
+            <HeroStatsStrip
+              stations={stations}
+              allPrices={allPrices}
+              fuelFilter={fuelFilter}
+              localCurrency={localCurrency}
+              isDark={isDark}
+              searchRadius={searchRadius}
+              onRadiusPress={() => setShowRadiusPicker(true)}
+            />
+          )}
         </View>
       )}
 
@@ -463,24 +661,22 @@ export default function HomeScreen() {
         <CtrlBtn icon="crosshairs-gps" onPress={handleRecenter} isDark={isDark} color={mapMoved ? Colors.primary : (isDark ? '#FFF' : '#000')} />
       </View>
 
-      {/* ── BOTTOM-LEFT: station count badge ─────────── */}
+      {/* ── BOTTOM-LEFT: last-updated badge (only after load) ─────────── */}
       {!isLoading && stations.length > 0 && !searchActive && (
-        <TouchableOpacity
+        <Animated.View
+          entering={FadeInDown.delay(300).springify()}
           style={[g.countBadge, { backgroundColor: isDark ? Colors.dark.surfaceElevated : '#FFFFFF', bottom: ctrlBottom }]}
-          onPress={() => setShowRadiusPicker(true)} activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="clock-outline" size={14} color={thm.textMuted} />
+          <View style={[g.liveDotSm, { backgroundColor: '#10B981' }]} />
           <Text style={[g.countTxt, { color: thm.textMuted }]}>
-            Prices updated 4 min ago • {stations.length} stations
+            Live prices • {stations.length} stations
           </Text>
-        </TouchableOpacity>
+        </Animated.View>
       )}
 
-      {/* Loading spinner (top) */}
-      {isLoading && !locationName && (
-        <View style={[g.spinner, { top: insets.top + 90 }]}>
-          <ActivityIndicator size="small" color={Colors.primary} />
-        </View>
+      {/* ── PRICE FETCH LOADING OVERLAY ─── */}
+      {isLoading && (
+        <PriceFetchOverlay isDark={isDark} stationCount={stations.length} />
       )}
 
       {/* ── BOTTOM PEEK: cheapest stations strip ─────── */}
@@ -517,23 +713,11 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── SKELETON LOADING ─── */}
-      {!showPeek && isLoading && (
-        <View style={[g.peek, { bottom: peekBottom }]}>
-          <SkeletonCards count={3} />
-        </View>
-      )}
+      {/* ── SKELETON LOADING — shown in peek sheet while map renders but isLoading ─── */}
+      {/* PriceFetchOverlay covers the map, so no extra skeleton needed here */}
 
-      {/* ── Station detail modal ─────────────────────── */}
-      {selectedStation && (
-        <StationDetailModal
-          station={selectedStation}
-          allPrices={allPrices}
-          userCoords={coords}
-          onClose={() => setSelectedStation(null)}
-          stationsQueryKey={stationsQueryKey}
-        />
-      )}
+      {/* ── Station detail → navigates to full screen ─────────── */}
+      {/* Modal removed — now uses StationDetailScreen via navigate('StationDetail') */}
 
       {/* ── Radius picker ────────────────────────────── */}
       <RadiusPicker
@@ -552,6 +736,7 @@ const g = StyleSheet.create({
   flex:    { flex: 1 },
   center:  { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadTxt: { marginTop: Spacing.md, fontSize: FontSize.md },
+  spinner: { position: 'absolute', alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: Spacing.xs, borderRadius: Radii.full },
 
   /* top overlay stack */
   topStack: {
@@ -589,7 +774,7 @@ const g = StyleSheet.create({
     alignItems: 'center',
   },
 
-  /* station count badge */
+  /* station count / live badge */
   countBadge: {
     position: 'absolute',
     left: Spacing.lg,
@@ -602,6 +787,7 @@ const g = StyleSheet.create({
     ...Shadows.md,
   },
   countTxt: { fontSize: 12, fontWeight: '600' },
+  liveDotSm: { width: 6, height: 6, borderRadius: 3 },
 
   /* peek strip */
   peek: { position: 'absolute', left: 0, right: 0, borderTopLeftRadius: Radii.xxl, borderTopRightRadius: Radii.xxl, ...Shadows.lg },

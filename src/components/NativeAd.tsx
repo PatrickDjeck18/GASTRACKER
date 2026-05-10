@@ -11,8 +11,8 @@ const nativeAdAndroidId = extra?.admobNativeAndroidId;
 const nativeAdIosId = extra?.admobNativeIosId;
 
 const AD_UNIT_ID = Platform.select({
-  android: nativeAdAndroidId || 'ca-app-pub-4253750298784159/9009007389',
-  ios: nativeAdIosId || 'ca-app-pub-4253750298784159/6718932147',
+  android: nativeAdAndroidId || 'ca-app-pub-4253750298784159/3663481248',
+  ios: nativeAdIosId || 'ca-app-pub-4253750298784159/4613600838',
 }) || TestIds.NATIVE;
 
 interface NativeAdProps {
@@ -47,9 +47,14 @@ export const NativeAd = ({ variant = 'expanded' }: NativeAdProps) => {
       {
         backgroundColor: themeColors.surface,
         borderColor: themeColors.border,
-        minHeight: adLoaded ? 0 : 0, // Keep container collapsed until loaded or use placeholder
+        minHeight: 120, // Must have height to trigger ad load and display
       }
     ]}>
+      {!adLoaded && !adError && (
+        <View style={styles.loadingPlaceholder}>
+          <Text style={{ color: themeColors.textMuted, fontSize: 12 }}>Ad Loading...</Text>
+        </View>
+      )}
       <NativeAdView
         adUnitId={AD_UNIT_ID}
         onAdLoaded={() => setAdLoaded(true)}
@@ -115,6 +120,13 @@ const styles = StyleSheet.create({
   },
   adView: {
     width: '100%',
+    minHeight: 120,
+  },
+  loadingPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: -1,
   },
   content: {
     padding: Spacing.md,

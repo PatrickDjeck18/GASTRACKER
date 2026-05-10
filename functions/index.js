@@ -292,33 +292,57 @@ exports.geminiRegionalPrices = onRequest(GEMINI_OPTS, (req, res) => {
       else if (normalizedRegion === 'europe') { desc = 'all major European countries'; }
 
       const prompt = [
-        `Return a JSON array of CURRENT estimated fuel prices for ${desc}.`,
+        `You are a fuel price data system. Return a strict JSON array of CURRENT estimated fuel prices for ${desc}.`,
+        `DO NOT include any conversational text like "I cannot provide". Just give the best estimated data you can.`,
         `CURRENCY RULE: ALL prices MUST be converted to and reported in ${currencyUpper}. Do not use any other currency.`,
         `For Australia: use grade names gasoline=91, midGrade=95, premium=98.`,
-        `Include at least 20 locations. Use real, up-to-date prices where possible.`,
+        `Include at least 15-20 locations. Use real, up-to-date prices where possible, or extremely realistic estimates based on current trends if exact data is unavailable.`,
         ``,
-        `Format (strict JSON array, no markdown):`,
+        `Format (strict JSON array ONLY):`,
         `[{"region":"${normalizedRegion}","name":"Location Name","currency":"${currencyUpper}","gasoline":1.55,"diesel":1.65,"lpg":null,"midGrade":1.75,"premium":1.85}]`,
       ].join('\n');
 
       const client = new GoogleGenerativeAI(key);
-      const model = client.getGenerativeModel({
-        model: 'gemini-2.5-flash-lite',
-        tools: [{ googleSearch: {} }]
-      });
+      const MODEL_CHAIN = ['gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+      const MAX_RETRIES = 2;
 
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      let text = response.text().trim();
-      const cleanText = text.replace(/```json\n?|```/g, '').trim();
-      let parsed = JSON.parse(cleanText);
+      let lastError = null;
 
-      // Normalize: ensure currency field is set correctly on every item
-      if (Array.isArray(parsed)) {
-        parsed = parsed.map(item => ({ ...item, currency: currencyUpper }));
+      for (const modelName of MODEL_CHAIN) {
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            const model = client.getGenerativeModel({
+              model: modelName,
+              tools: [{ googleSearch: {} }]
+            });
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text().trim();
+            const cleanText = text.replace(/```json\n?|```/g, '').trim();
+            
+            let parsed;
+            try {
+              parsed = JSON.parse(cleanText);
+            } catch (parseErr) {
+              throw new Error(`JSON parse failed on ${modelName} attempt ${attempt}. Output was: ${cleanText.substring(0, 50)}...`);
+            }
+
+            // Normalize: ensure currency field is set correctly on every item
+            if (Array.isArray(parsed)) {
+              parsed = parsed.map(item => ({ ...item, currency: currencyUpper }));
+            }
+
+            return res.json({ success: true, result: parsed });
+          } catch (err) {
+            lastError = err;
+            logger.warn(`[geminiRegionalPrices] Error on ${modelName} attempt ${attempt}: ${err.message}`);
+            // Wait 1s before retry
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
       }
 
-      res.json({ success: true, result: parsed });
+      throw lastError || new Error('All models exhausted for regional prices');
     } catch (err) {
       logger.error('Gemini Regional Error:', err.message);
       res.status(500).json({ error: err.message });

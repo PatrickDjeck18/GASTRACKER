@@ -4,10 +4,10 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Switch,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AnimatedTouchable } from '../components/AnimatedTouchable';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,7 +62,7 @@ export default function SettingsScreen() {
             const icons = { system: 'theme-light-dark', light: 'white-balance-sunny', dark: 'moon-waning-crescent' };
             const isLast = index === 2;
             return (
-              <TouchableOpacity
+              <AnimatedTouchable
                 key={m}
                 style={[
                   styles.themeOption, 
@@ -70,6 +70,7 @@ export default function SettingsScreen() {
                   active && { backgroundColor: Colors.primaryMuted }
                 ]}
                 activeOpacity={0.7}
+                hapticFeedback="Light"
                 onPress={() => setDarkMode(m)}
               >
                 <View style={[styles.iconWrap, { backgroundColor: active ? Colors.primaryGlow : thm.borderSubtle }]}>
@@ -85,7 +86,7 @@ export default function SettingsScreen() {
                 {active && (
                   <MaterialCommunityIcons name="check-circle" size={20} color={Colors.primary} style={{ marginLeft: 'auto' }} />
                 )}
-              </TouchableOpacity>
+              </AnimatedTouchable>
             );
           })}
         </View>
@@ -94,28 +95,30 @@ export default function SettingsScreen() {
         <SectionTitle label={t('settings.fuelType')} thm={thm} />
         <View style={[styles.card, { backgroundColor: cardBg, borderColor: border, padding: Spacing.md }]}>
           <View style={styles.chipWrap}>
-            <TouchableOpacity
+            <AnimatedTouchable
               style={[
                 styles.chipOption,
                 { backgroundColor: !filters.fuelType ? Colors.primary : thm.background, borderColor: !filters.fuelType ? Colors.primary : thm.border }
               ]}
               activeOpacity={0.7}
+              hapticFeedback="Medium"
               onPress={() => setFilters({ fuelType: null })}
             >
               <Text style={[styles.chipLabel, { color: !filters.fuelType ? '#FFF' : thm.text }]}>
                 All Types
               </Text>
-            </TouchableOpacity>
+            </AnimatedTouchable>
             {FUEL_TYPES.map((ft) => {
               const active = filters.fuelType === ft.key;
               return (
-                <TouchableOpacity
+                <AnimatedTouchable
                   key={ft.key}
                   style={[
                     styles.chipOption,
                     { backgroundColor: active ? Colors.primary : thm.background, borderColor: active ? Colors.primary : thm.border }
                   ]}
                   activeOpacity={0.7}
+                  hapticFeedback="Medium"
                   onPress={() => setFilters({ fuelType: active ? null : ft.key })}
                 >
                   <Text
@@ -123,7 +126,7 @@ export default function SettingsScreen() {
                   >
                     {t(ft.label)}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               );
             })}
           </View>
@@ -150,7 +153,7 @@ export default function SettingsScreen() {
             {[5, 10, 15, 25, 50].map((km) => {
               const active = searchRadius === km * 1000;
               return (
-                <TouchableOpacity
+                <AnimatedTouchable
                   key={km}
                   style={[
                     styles.radiusChip, 
@@ -158,12 +161,13 @@ export default function SettingsScreen() {
                     active && (!isDark ? Shadows.colored(Colors.primary) : undefined)
                   ]}
                   activeOpacity={0.7}
+                  hapticFeedback="Medium"
                   onPress={() => setSearchRadius(km * 1000)}
                 >
                   <Text style={[styles.radiusText, { color: active ? '#FFF' : thm.text }]}>
                     {km}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               );
             })}
           </View>
@@ -176,7 +180,7 @@ export default function SettingsScreen() {
             {[10, 25, 50, 75, 100].map((goal) => {
               const active = weeklySavingsGoal === goal;
               return (
-                <TouchableOpacity
+                <AnimatedTouchable
                   key={goal}
                   style={[
                     styles.goalChip,
@@ -186,12 +190,13 @@ export default function SettingsScreen() {
                     },
                   ]}
                   activeOpacity={0.7}
+                  hapticFeedback="Medium"
                   onPress={() => setWeeklySavingsGoal(goal)}
                 >
                   <Text style={[styles.goalChipText, { color: active ? '#FFF' : thm.text }]}>
                     {goal}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               );
             })}
           </View>
@@ -212,7 +217,7 @@ export default function SettingsScreen() {
             ].map((lang) => {
               const active = i18n.language === lang.code;
               return (
-                <TouchableOpacity
+                <AnimatedTouchable
                   key={lang.code}
                   style={[
                     styles.langChip, 
@@ -222,22 +227,24 @@ export default function SettingsScreen() {
                     }
                   ]}
                   activeOpacity={0.7}
+                  hapticFeedback="Medium"
                   onPress={() => setAppLanguage(lang.code)}
                 >
                   <Text style={styles.langFlag}>{lang.flag}</Text>
                   <Text style={[styles.langName, { color: active ? Colors.primary : thm.text }]}>
                     {lang.name}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               );
             })}
           </View>
         </View>
 
         {/* ── Privacy notice ─────────── */}
-        <TouchableOpacity 
+        <AnimatedTouchable 
           onPress={() => navigation.navigate('PrivacyPolicy')}
           activeOpacity={0.7}
+          hapticFeedback="Light"
           style={[styles.privacyCard, { backgroundColor: Colors.primaryMuted, borderColor: Colors.primary + '30' }]}
         >
           <MaterialCommunityIcons name="shield-check" size={24} color={Colors.primary} />
@@ -248,7 +255,7 @@ export default function SettingsScreen() {
             </Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary} />
-        </TouchableOpacity>
+        </AnimatedTouchable>
       </ScrollView>
     </View>
   );

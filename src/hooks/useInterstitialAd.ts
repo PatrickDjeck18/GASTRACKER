@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { Platform } from 'react-native';
+import { useEffect, useCallback } from 'react';
+import { Platform, AppState, type AppStateStatus } from 'react-native';
 import {
   InterstitialAd,
   AdEventType,
@@ -9,13 +9,12 @@ import { AD_REQUEST_OPTIONS } from '../constants/adMob';
 
 /* ─────────────────────────────────────────────────────
  * Ad Unit IDs
- * In production, replace these with your real Ad-Unit IDs.
  * ────────────────────────────────────────────────────── */
 const INTERSTITIAL_UNIT_ID = __DEV__
   ? TestIds.INTERSTITIAL
   : Platform.select({
-      ios: 'ca-app-pub-4253750298784159/9999906497',
-      android: 'ca-app-pub-4253750298784159/4286851714',
+      ios: 'ca-app-pub-4253750298784159/3421762493',
+      android: 'ca-app-pub-4253750298784159/8007874764',
       default: TestIds.INTERSTITIAL,
     })!;
 
@@ -23,88 +22,131 @@ const INTERSTITIAL_UNIT_ID = __DEV__
 const AD_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
 
 /** Number of "actions" before an ad is shown */
-const ACTIONS_BEFORE_AD = 1;
+const ACTIONS_BEFORE_AD = 2;
+
+/* ─────────────────────────────────────────────────────
+ * Global Singleton State
+ * ────────────────────────────────────────────────────── */
+let globalInterstitial: InterstitialAd | null = null;
+let globalIsLoaded = false;
+let globalLastShown = 0;
+let globalActionCount = 0;
+let globalIsLoading = false;
 
 /**
- * Hook to manage interstitial ads with:
- * - Automatic preloading
- * - Cooldown timer
- * - Automatic periodic trigger (every 2 minutes)
+ * Load a new interstitial ad
+ */
+function loadAd() {
+  if (globalIsLoaded || globalIsLoading || Platform.OS === 'web') return;
+  
+  globalIsLoading = true;
+  const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
+    ...AD_REQUEST_OPTIONS,
+  });
+
+  ad.addAdEventListener(AdEventType.LOADED, () => {
+    globalIsLoaded = true;
+    globalIsLoading = false;
+  });
+
+  ad.addAdEventListener(AdEventType.CLOSED, () => {
+    globalIsLoaded = false;
+    globalIsLoading = false;
+    globalInterstitial = null;
+    // Preload the next one
+    loadAd();
+  });
+
+  ad.addAdEventListener(AdEventType.ERROR, (error) => {
+    if (__DEV__) console.warn('Interstitial Ad Error:', error);
+    globalIsLoaded = false;
+    globalIsLoading = false;
+    globalInterstitial = null;
+    // Retry after 30 seconds
+    setTimeout(loadAd, 30000);
+  });
+
+  ad.load();
+  globalInterstitial = ad;
+}
+
+/**
+ * Show the ad if conditions are met
+ */
+function showAdInternal() {
+  if (Platform.OS === 'web') return false;
+
+  const now = Date.now();
+  
+  // Initialize start time on first call if not set
+  if (globalLastShown === 0) {
+    globalLastShown = now;
+    return false;
+  }
+
+  // Check cooldown
+  if (now - globalLastShown < AD_COOLDOWN_MS) {
+    return false;
+  }
+
+  // Only show if app is in foreground
+  if (AppState.currentState !== 'active') {
+    return false;
+  }
+
+  if (globalIsLoaded && globalInterstitial) {
+    try {
+      globalInterstitial.show();
+      globalLastShown = now;
+      globalActionCount = 0;
+      return true;
+    } catch (e) {
+      console.error('Failed to show interstitial:', e);
+      return false;
+    }
+  } else {
+    // If not loaded but we wanted to show it, try loading now
+    loadAd();
+    return false;
+  }
+}
+
+// Initial load attempt
+if (Platform.OS !== 'web') {
+  loadAd();
+}
+
+// Global timer to show ad every 3 minutes (checked every 10s for reliability)
+const globalInterval = setInterval(() => {
+  showAdInternal();
+}, 10000);
+
+/**
+ * Hook to manage interstitial ads with global state.
+ * Using this hook in multiple components is safe and shared.
  */
 export function useInterstitialAd() {
-  const interstitial = useRef<InterstitialAd | null>(null);
-  const isLoaded = useRef(false);
-  const lastShown = useRef(0);
-  const actionCount = useRef(0);
-
-  // ... loadAd logic remains same ...
-
-  // Create and preload the ad
-  const loadAd = useCallback(() => {
-    const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
-      ...AD_REQUEST_OPTIONS,
-    });
-
-    const unsubLoaded = ad.addAdEventListener(AdEventType.LOADED, () => {
-      isLoaded.current = true;
-    });
-
-    const unsubClosed = ad.addAdEventListener(AdEventType.CLOSED, () => {
-      isLoaded.current = false;
-      loadAd();
-    });
-
-    const unsubError = ad.addAdEventListener(AdEventType.ERROR, (error) => {
-      isLoaded.current = false;
-    });
-
-    ad.load();
-    interstitial.current = ad;
-
-    return () => {
-      unsubLoaded();
-      unsubClosed();
-      unsubError();
-    };
-  }, []);
-
-  useEffect(() => {
-    const cleanup = loadAd();
-    return cleanup;
-  }, [loadAd]);
-
   /**
-   * Force-show the ad immediately. Respects cooldown.
+   * Call this on a user action (e.g. clicking a station).
    */
-  const showAdNow = useCallback(() => {
-    const now = Date.now();
-    if (now - lastShown.current < AD_COOLDOWN_MS) return;
-
-    if (isLoaded.current && interstitial.current) {
-      interstitial.current.show();
-      lastShown.current = now;
-      actionCount.current = 0;
+  const maybeShowAd = useCallback(() => {
+    globalActionCount += 1;
+    if (globalActionCount >= ACTIONS_BEFORE_AD) {
+      showAdInternal();
     }
   }, []);
 
   /**
-   * Automatic background timer to check for ad availability every 3 minutes.
+   * Force-show the ad immediately (still respects 3-min cooldown).
    */
-  useEffect(() => {
-    const interval = setInterval(() => {
-      showAdNow();
-    }, 60 * 1000); // Check every minute
-    return () => clearInterval(interval);
-  }, [showAdNow]);
+  const showAdNow = useCallback(() => {
+    showAdInternal();
+  }, []);
 
-  /**
-   * Call this on a user action.
-   */
-  const maybeShowAd = useCallback(() => {
-    actionCount.current += 1;
-    if (actionCount.current < ACTIONS_BEFORE_AD) return;
-    showAdNow();
-  }, [showAdNow]);
+  useEffect(() => {
+    // Ensure ad is loaded when hook is first used
+    loadAd();
+  }, []);
 
   return { maybeShowAd, showAdNow };
 }

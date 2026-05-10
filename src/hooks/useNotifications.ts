@@ -54,12 +54,12 @@ export const useNotifications = () => {
           });
           if (match) setSelectedStation(match.id);
         }
-        navigate('MapTab');
+        navigate('HomeTab');
         return;
       }
 
       if (screen === 'Map') {
-        navigate('MapTab');
+        navigate('HomeTab');
       }
     };
 
@@ -105,69 +105,50 @@ async function requestPermissions() {
 const NOTIFICATIONS_SCHEDULED_KEY = '@notifications_scheduled';
 
 async function scheduleDailyNotification() {
-  // Check if we've already scheduled notifications (persistent flag)
-  const alreadyScheduledFlag = await AsyncStorage.getItem(NOTIFICATIONS_SCHEDULED_KEY);
-  if (alreadyScheduledFlag === 'true') {
-    return; // Notifications already scheduled, don't schedule again
+  // Cancel all previously scheduled notifications to prevent duplicates or immediate fires
+  // from old configurations when the app opens.
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
+  try {
+    // Morning notification at 8:00 AM
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'morning-fuel-check',
+      content: {
+        title: 'Time for a Fuel Check? ⛽',
+        body: 'Good morning! Check the latest fuel prices near you and save on your next trip.',
+        data: { screen: 'Map' },
+        sound: true,
+      },
+      trigger: {
+        channelId: 'default',
+        hour: 8,
+        minute: 0,
+        repeats: true,
+      } as any,
+    });
+  } catch (error) {
+    console.warn('[Notifications] Failed to schedule morning notification:', error);
   }
 
-  // Check if already scheduled to avoid duplicates
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-
-  // Morning notification at 8:00 AM
-  const morningScheduled = scheduled.some(
-    (notification) => notification.identifier === 'morning-fuel-check'
-  );
-
-  if (!morningScheduled) {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        identifier: 'morning-fuel-check',
-        content: {
-          title: 'Time for a Fuel Check? ⛽',
-          body: 'Good morning! Check the latest fuel prices near you and save on your next trip.',
-          data: { screen: 'Map' },
-          sound: true,
-        },
-        trigger: {
-          channelId: 'default',
-          hour: 8,
-          minute: 0,
-          repeats: true,
-        } as any,
-      });
-    } catch (error) {
-      console.warn('[Notifications] Failed to schedule morning notification:', error);
-      // Don't re-throw - this is expected when app is in background/closed
-    }
-  }
-
-  // Evening notification at 6:00 PM (18:00)
-  const eveningScheduled = scheduled.some(
-    (notification) => notification.identifier === 'evening-fuel-check'
-  );
-
-  if (!eveningScheduled) {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        identifier: 'evening-fuel-check',
-        content: {
-          title: 'Evening Fuel Price Update ⛽',
-          body: 'Check fuel prices before your evening commute or plans tomorrow.',
-          data: { screen: 'Map' },
-          sound: true,
-        },
-        trigger: {
-          channelId: 'default',
-          hour: 18,
-          minute: 0,
-          repeats: true,
-        } as any,
-      });
-    } catch (error) {
-      console.warn('[Notifications] Failed to schedule evening notification:', error);
-      // Don't re-throw - this is expected when app is in background/closed
-    }
+  try {
+    // Evening notification at 8:00 PM (20:00)
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'evening-fuel-check',
+      content: {
+        title: 'Evening Fuel Price Update ⛽',
+        body: 'Check fuel prices before your evening commute or plans tomorrow.',
+        data: { screen: 'Map' },
+        sound: true,
+      },
+      trigger: {
+        channelId: 'default',
+        hour: 20,
+        minute: 0,
+        repeats: true,
+      } as any,
+    });
+  } catch (error) {
+    console.warn('[Notifications] Failed to schedule evening notification:', error);
   }
 
   // Mark as scheduled in persistent storage

@@ -89,7 +89,7 @@ function formatLocalCurrency(val: number | null, localCurrency: string): string 
   } catch (e) {
     const symMap: Record<string, string> = {
       EUR: '€', USD: '$', GBP: '£', CHF: 'CHF ', PLN: 'zł',
-      CAD: 'CA$', AUD: 'A$', NZD: 'NZ$', JPY: '¥', GBP: '£',
+      CAD: 'CA$', AUD: 'A$', NZD: 'NZ$', JPY: '¥',
     };
     const sym = symMap[code] ?? code + ' ';
     return `${sym}${val.toFixed(3)}`;
@@ -200,7 +200,7 @@ function PriceCardSkeleton({ isDark }: { isDark: boolean }) {
 
       {/* Flag + name lines */}
       <View style={s.nameBlock}>
-        <View style={[s.flag, { width: 28, height: 24, borderRadius: 4, backgroundColor: shimmerColor }]} />
+        <View style={{ width: 28, height: 24, borderRadius: 4, backgroundColor: shimmerColor }} />
         <View style={s.nameCol}>
           <View style={{ height: 14, width: '70%', borderRadius: 6, backgroundColor: lineColor, marginBottom: 6 }} />
           <View style={{ height: 10, width: '40%', borderRadius: 4, backgroundColor: shimmerColor }} />

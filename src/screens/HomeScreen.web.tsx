@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 
@@ -11,7 +12,6 @@ import { useSearchLocation } from '../hooks/useSearchLocation';
 import { useAppStore } from '../store/useAppStore';
 
 import { TomTomMap } from '../components/TomTomMap';
-import { StationDetailModal } from '../components/StationDetailModal';
 import { EmptyState } from '../components/EmptyState';
 import { SearchBar } from '../components/SearchBar';
 
@@ -93,9 +93,22 @@ export default function HomeScreen() {
     [selectedId, stations],
   );
 
+  const navigation = useNavigation<any>();
+  const setCachedStations = useAppStore((s) => s.setCachedStations);
+
+  useEffect(() => {
+    if (stations.length > 0) setCachedStations(stations);
+  }, [stations, setCachedStations]);
+
   const handleStationSelect = useCallback((id: string) => {
-    setSelectedStation(id || null);
-  }, [setSelectedStation]);
+    if (!id) { setSelectedStation(null); return; }
+    setSelectedStation(id);
+    navigation.navigate('StationDetail', {
+      stationId: id,
+      allPrices,
+      stationsQueryKey,
+    });
+  }, [setSelectedStation, navigation, allPrices, stationsQueryKey]);
 
   const handleRecenter = useCallback(() => {
     if (!coords) return;
@@ -236,16 +249,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── Station detail modal ─── */}
-      {selectedStation && (
-        <StationDetailModal
-          station={selectedStation}
-          allPrices={allPrices}
-          userCoords={coords}
-          onClose={() => setSelectedStation(null)}
-          stationsQueryKey={stationsQueryKey}
-        />
-      )}
+      {/* ── Station detail modal removed ─── */}
     </View>
   );
 }

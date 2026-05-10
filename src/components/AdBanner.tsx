@@ -5,8 +5,8 @@ import { useIsDark } from '../hooks/useIsDark';
 
 // Ad unit IDs
 const AD_UNIT_ID = Platform.select({
-    android: 'ca-app-pub-4253750298784159/3626069830',
-    ios: 'ca-app-pub-4253750298784159/3759102636',
+    android: 'ca-app-pub-4253750298784159/3527300162',
+    ios: 'ca-app-pub-4253750298784159/1112889817',
 });
 
 interface AdBannerProps {
