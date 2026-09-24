@@ -2,7 +2,8 @@
   "expo": {
     "name": "GasPrices",
     "slug": "gaseprice",
-    "version": "1.0.16",
+    "owner": "patrickdjeck",
+    "version": "1.0.19",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -18,10 +19,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fuel.gase.app",
-      "buildNumber": "19",
+      "buildNumber": "22",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "GasePrice uses your location to identify fuel stations in your immediate area and provide accurate, real-time price comparisons for your specific location. This allows you to find the lowest prices nearby.",
+        "NSLocationWhenInUseUsageDescription": "Fuel Price New uses your location to show nearby fuel stations and find the lowest prices. Location is not stored on our servers.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Your location is used only while the app is active to map nearby fuel stations. We do not track your location in the background.",
         "LSApplicationQueriesSchemes": [
           "tomtomgo",
@@ -33,9 +34,51 @@
           "waze",
           "comgooglemaps",
           "maps",
+          "map",
+          "tomtomgo",
+          "com.tomtom.app",
+          "waze",
+          "comgooglemaps",
+          "maps",
           "map"
         ],
         "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "p78adc93ut.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "4fzdc2evr5.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "4pfyvq9l8r.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "yclnxrl5pm.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "tl55sbb4fm.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "mlmmfzh3r3.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "klf5c3l5u5.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "hs6bdukanm.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "9rd848q77k.skadnetwork"
+          },
           {
             "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
           },
@@ -119,13 +162,18 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.fuel.gase.app",
-      "versionCode": 20,
+      "versionCode": 23,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.POST_NOTIFICATIONS",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "POST_NOTIFICATIONS",
@@ -172,6 +220,9 @@
       "googleAiApiKey": "AIzaSyDLEMzVHSYVEsgeqG1mTyFbdNmk4weJ6Ys",
       "admobNativeAndroidId": "ca-app-pub-4253750298784159/3663481248",
       "admobNativeIosId": "ca-app-pub-4253750298784159/4613600838"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cb9fe762-4196-4d5e-a524-b8df32b0323a"
     }
   }
 }

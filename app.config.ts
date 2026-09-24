@@ -18,7 +18,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     name: config.name || 'GasePrice',
     slug: config.slug || 'gaseprice',
 
-    version: config.version || '1.0.16',
+    version: config.version || '1.0.19',
     orientation: config.orientation || 'portrait',
     icon: config.icon || './assets/icon.png',
     userInterfaceStyle: config.userInterfaceStyle || 'automatic',
@@ -31,7 +31,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
     ios: {
         supportsTablet: true,
         bundleIdentifier: config.ios?.bundleIdentifier || 'com.fuel.gase.app',
-        buildNumber: config.ios?.buildNumber || '18',
+        buildNumber: config.ios?.buildNumber || '22',
         infoPlist: {
             ITSAppUsesNonExemptEncryption: false,
             NSLocationWhenInUseUsageDescription:
@@ -59,7 +59,7 @@ const defineConfig = ({ config }: ConfigContext): ExpoConfig => ({
             backgroundColor: '#0d47a1',
         },
         package: config.android?.package || 'com.fuel.gase.app',
-        versionCode: config.android?.versionCode || 19,
+        versionCode: config.android?.versionCode || 23,
         permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'POST_NOTIFICATIONS'],
     },
     web: {
